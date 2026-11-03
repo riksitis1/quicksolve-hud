@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8. klassi tasemetöö — Matemaatika, Bioloogia ja Eesti keel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --paper-bg: #ffffff;
+      --page-bg: #eef2f6;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --border: #cbd5e1;
+      --accent: #2563eb;
+      --math-color: #1d4ed8;
+      --bio-color: #15803d;
+      --est-color: #b45309;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--page-bg);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.45;
+      padding: 16px 24px;
+    }
+
+    .worksheet-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      background: var(--paper-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
+      padding: 20px 26px;
+    }
+
+    /* Worksheet Header */
+    .worksheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-left h1 {
+      font-size: 19px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .header-left p {
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .student-info {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 13px;
+    }
+
+    .toolbar-btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-util {
+      background: #f1f5f9;
+      border: 1px solid var(--border);
+      color: #334155;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 11px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-util:hover {
+      background: #e2e8f0;
+    }
+
+    /* 3-Column Compact Grid so all 3 subjects fit on a single 1080p screen capture */
+    .subjects-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .subject-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      background: #fafbfc;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+    }
+
+    .subject-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 8px;
+      border-bottom: 2px solid currentColor;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .subject-math .subject-title { color: var(--math-color); }
+    .subject-bio .subject-title { color: var(--bio-color); }
+    .subject-est .subject-title { color: var(--est-color); }
+
+    .points-tag {
+      font-size: 11px;
+      font-weight: 600;
+      background: #e2e8f0;
+      color: #334155;
+      padding: 2px 7px;
+      border-radius: 99px;
+    }
+
+    .question-block {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 7px;
+      padding: 10px 12px;
+    }
+
+    .q-header {
+      font-weight: 600;
+      font-size: 13.5px;
+      margin-bottom: 6px;
+      color: #0f172a;
+    }
+
+    .q-num {
+      font-weight: 700;
+      margin-right: 4px;
+    }
+
+    .q-subtext {
+      font-size: 12.5px;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+
+    /* Input Boxes & Blanks */
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+
+    .box-input {
+      height: 30px;
+      padding: 4px 8px;
+      border: 1.5px solid #94a3b8;
+      border-radius: 5px;
+      font-family: inherit;
+      font-size: 13.5px;
+      background: #ffffff;
+      color: #0f172a;
+      width: 120px;
+    }
+
+    .box-input.wide {
+      width: 100%;
+    }
+
+    .inline-blank {
+      display: inline-block;
+      width: 115px;
+      height: 25px;
+      border: none;
+      border-bottom: 2px dotted #475569;
+      background: #f8fafc;
+      padding: 2px 6px;
+      font-family: inherit;
+      font-size: 13px;
+      color: #0f172a;
+      vertical-align: baseline;
+    }
+
+    /* Multiple Choice Options */
+    .mc-options {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 6px;
+    }
+
+    .mc-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 3px 6px;
+      border-radius: 4px;
+    }
+
+    .mc-label:hover {
+      background: #f1f5f9;
+    }
+
+    .mc-label input[type="radio"],
+    .mc-label input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--accent);
+    }
+
+    @media (max-width: 1024px) {
+      .subjects-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="worksheet-container">
+    <header class="worksheet-header">
+      <div class="header-left">
+        <h1>8. klassi komplekstöö (Matemaatika • Bioloogia • Eesti keel)</h1>
+        <p>Täida kõik lüngad, tekstikastid ja vali valikvastustega küsimustes õige vastus.</p>
+      </div>
+      <div class="toolbar-btns">
+        <button type="button" class="btn-util" onclick="document.querySelectorAll('input').forEach(i => { if(i.type==='radio'||i.type==='checkbox') i.checked=false; else i.value=''; })">
+          Tühjenda väljad
+        </button>
+      </div>
+    </header>
+
+    <div class="subjects-grid">
+      <!-- ===============================================================
+           I. MATEMAATIKA (8. KLASS)
+           =============================================================== -->
+      <section class="subject-card subject-math">
+        <div class="subject-title">
+          <span>I. Matemaatika</span>
+          <span class="points-tag">4 ülesannet</span>
+        </div>
+
+        <!-- Q1: Linear Equation -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">1.</span> Lahenda võrrand ja kirjuta vastus:</div>
+          <div class="q-subtext"><strong>5x &minus; 14 = 2x + 19</strong></div>
+          <div class="input-row">
+            <span>x =</span>
+            <input type="text" class="box-input" aria-label="Ülesanne 1 vastus" />
+          </div>
+        </div>
+
+        <!-- Q2: Percentage Problem -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">2.</span> Protsentarvutus:</div>
+          <div class="q-subtext">Jalgratas maksis 320 eurot. Kevadise soodusmüügi ajal alandati hinda 15%. Kui palju maksab jalgratas nüüd?</div>
+          <div class="input-row">
+            <span>Uus hind:</span>
+            <input type="text" class="box-input" aria-label="Ülesanne 2 vastus" />
+            <span>€</span>
+          </div>
+        </div>
+
+        <!-- Q3: Geometry / Pythagoras -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">3.</span> Täisnurkse kolmnurga kaatetid on 6 cm ja 8 cm.</div>
+          <div class="q-subtext">Kui pikk on selle kolmnurga hüpotenuus?</div>
+          <div class="input-row">
+            <span>c =</span>
+            <input type="text" class="box-input" aria-label="Ülesanne 3 vastus" />
+            <span>cm</span>
+          </div>
+        </div>
+
+        <!-- Q4: Math Multiple Choice -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">4.</span> Milline järgmistest arvudest on algarv?</div>
+          <div class="mc-options">
+            <label class="mc-label"><input type="radio" name="math_q4" /> A) 21</label>
+            <label class="mc-label"><input type="radio" name="math_q4" /> B) 29</label>
+            <label class="mc-label"><input type="radio" name="math_q4" /> C) 33</label>
+            <label class="mc-label"><input type="radio" name="math_q4" /> D) 39</label>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           II. BIOLOOGIA (8. KLASS)
+           =============================================================== -->
+      <section class="subject-card subject-bio">
+        <div class="subject-title">
+          <span>II. Bioloogia</span>
+          <span class="points-tag">4 ülesannet</span>
+        </div>
+
+        <!-- Q5: Cell Organelle Multiple Choice -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">5.</span> Millises taimeraku organellis toimub fotosüntees?</div>
+          <div class="mc-options">
+            <label class="mc-label"><input type="radio" name="bio_q5" /> A) Mitokondris</label>
+            <label class="mc-label"><input type="radio" name="bio_q5" /> B) Ribosoomis</label>
+            <label class="mc-label"><input type="radio" name="bio_q5" /> C) Kloroplastis</label>
+            <label class="mc-label"><input type="radio" name="bio_q5" /> D) Rakutuumas</label>
+          </div>
+        </div>
+
+        <!-- Q6: Fill-in-the-blank dotted lines -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">6.</span> Täida lüngad fotosünteesi kohta:</div>
+          <div class="q-subtext" style="line-height: 2.0;">
+            Taimed vajavad fotosünteesiks valgust, vett ja õhust
+            <input type="text" class="inline-blank" aria-label="Bioloogia lünk 6a" />.
+            Fotosünteesi käigus eraldub õhku eluks vajalik gaas:
+            <input type="text" class="inline-blank" aria-label="Bioloogia lünk 6b" />.
+          </div>
+        </div>
+
+        <!-- Q7: Open-ended short 8th-grade question -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">7.</span> Miks on soontaimedel vaja juuri? (Nimeta 2 põhiülesannet)</div>
+          <div class="input-row">
+            <input type="text" class="box-input wide" aria-label="Ülesanne 7 vastus" />
+          </div>
+        </div>
+
+        <!-- Q8: Fungi / Lichens question -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">8.</span> Kuidas nimetatakse seene ja vetika kooselu samblikus?</div>
+          <div class="input-row">
+            <span>Mõiste:</span>
+            <input type="text" class="box-input" style="width: 170px;" aria-label="Ülesanne 8 vastus" />
+          </div>
+        </div>
+      </section>
+
+      <!-- ===============================================================
+           III. EESTI KEEL (8. KLASS)
+           =============================================================== -->
+      <section class="subject-card subject-est">
+        <div class="subject-title">
+          <span>III. Eesti keel</span>
+          <span class="points-tag">4 ülesannet</span>
+        </div>
+
+        <!-- Q9: Grammatical Cases (Käänded) -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">9.</span> Kirjuta sulgudes olev sõna ainsuse osastavas käändes:</div>
+          <div class="q-subtext" style="line-height: 2.0;">
+            Me nägime metsas suurt (hunt)
+            <input type="text" class="inline-blank" aria-label="Eesti keel lünk 9a" />
+            ja väikest (rebane)
+            <input type="text" class="inline-blank" aria-label="Eesti keel lünk 9b" />.
+          </div>
+        </div>
+
+        <!-- Q10: Compound Words Multiple Choice (Kokku- ja lahkukirjutamine) -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">10.</span> Millises variandis on kõik sõnad õigesti kirjutatud?</div>
+          <div class="mc-options">
+            <label class="mc-label"><input type="radio" name="est_q10" /> A) eesti keel, vana ema, kolmsada</label>
+            <label class="mc-label"><input type="radio" name="est_q10" /> B) eesti keel, vanaema, kolmsada</label>
+            <label class="mc-label"><input type="radio" name="est_q10" /> C) eestikeel, vanaema, kolm sada</label>
+            <label class="mc-label"><input type="radio" name="est_q10" /> D) eesti keel, vanaema, kolm sada</label>
+          </div>
+        </div>
+
+        <!-- Q11: Orthography / Võõrsõnad -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">11.</span> Paranda vigane võõrsõna lauses:</div>
+          <div class="q-subtext"><em>"Kooli <strong>arhitektuur</strong> ja uus <strong>bussipaviljon</strong> olid moodsad, kuid <strong>effektne</strong> valgustus puudus."</em></div>
+          <div class="input-row">
+            <span>Õige kuju:</span>
+            <input type="text" class="box-input" style="width: 160px;" aria-label="Ülesanne 11 vastus" />
+          </div>
+        </div>
+
+        <!-- Q12: Open-ended sentence task -->
+        <div class="question-block">
+          <div class="q-header"><span class="q-num">12.</span> Mis on lauses alus (kes/mis teeb)?</div>
+          <div class="q-subtext">Lause: <em>"Varahommikul laulis kõrgel kuuseladvas väike musträstas."</em></div>
+          <div class="input-row">
+            <span>Alus:</span>
+            <input type="text" class="box-input" style="width: 180px;" aria-label="Ülesanne 12 vastus" />
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</body>
+</html>
