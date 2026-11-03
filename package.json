@@ -1,0 +1,13 @@
+{
+  "name": "quicksolve-hud",
+  "version": "1.0.0",
+  "description": "QuickSolve HUD — Client-Side Spatial Worksheet Solver",
+  "main": "server.js",
+  "scripts": {
+    "build": "echo 'Static build ready'",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
