@@ -966,13 +966,14 @@ kbd, code {
 
 .spatial-pill {
   position: absolute;
-  top: -10px;
-  left: -6px;
+  top: 50%;
+  left: 0;
+  transform: translate(-35%, -50%);
   display: inline-flex;
   align-items: center;
   gap: 4px;
   max-width: 220px;
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: 99px;
   background: #050911;
   border: 1.5px solid var(--neon-green);
@@ -990,7 +991,8 @@ kbd, code {
 
 .spatial-box.pill-right .spatial-pill {
   left: auto;
-  right: -6px;
+  right: 0;
+  transform: translate(35%, -50%);
 }
 
 .spatial-pill-id {
@@ -1005,8 +1007,12 @@ kbd, code {
   background: var(--neon-green);
   color: #04120b;
   border-color: #ffffff;
-  transform: scale(1.08);
+  transform: translate(-35%, -50%) scale(1.14);
   z-index: 55;
+}
+
+.spatial-box.pill-right.is-highlighted .spatial-pill {
+  transform: translate(35%, -50%) scale(1.14);
 }
 
 .spatial-box.is-highlighted .spatial-pill-id {
@@ -1096,6 +1102,19 @@ kbd, code {
 .btn-nav-pin:hover {
   border-color: var(--neon-green);
   color: var(--neon-green);
+}
+
+.inspector-location {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fde68a;
+  background: rgba(255, 184, 0, 0.12);
+  border-left: 3px solid var(--accent-amber);
+  padding: 5px 10px;
+  border-radius: 6px;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .inspector-steps {
@@ -1389,6 +1408,31 @@ kbd, code {
   background: var(--neon-green);
   color: #04120b;
   border-color: var(--neon-green);
+}
+
+/* Asukoha / trükitud tehte blokk kaardil */
+.card-location-box {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fde68a;
+  background: rgba(255, 184, 0, 0.1);
+  border-left: 2.5px solid var(--accent-amber);
+  padding: 5px 9px;
+  border-radius: 5px;
+  margin-bottom: 6px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.card-location-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-amber);
+  margin-bottom: 1px;
 }
 
 /* Lahenduskäigu blokk kaardil */

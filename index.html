@@ -24,7 +24,7 @@
       </div>
       <div class="brand-text">
         <h1>QuickSolve <span class="badge-hud">HUD</span></h1>
-        <span class="subtitle">Täpne töölehtede ja töövihikute lahendaja (koos lahenduskäiguga)</span>
+        <span class="subtitle">Täpne töölehtede ja töövihikute lahendaja (koos asukoha ja lahenduskäiguga)</span>
       </div>
     </div>
 
@@ -61,8 +61,8 @@
         <label for="modelSelect" class="sr-only">Gemini mudel</label>
         <select id="modelSelect" title="Vali Gemini mudel">
           <option value="gemini-3.8-flash" selected>⚡ gemini-3.8-flash (Soovitatav • Täpne)</option>
+          <option value="gemini-4-argon">🧠 gemini-4-argon (Raske Matemaatika/Teadus)</option>
           <option value="gemini-3.5-flash-lite">🚀 gemini-3.5-flash-lite (Kiireim • Säästlik)</option>
-          <option value="gemini-4-argon">🧠 gemini-4-argon (Sügav Matemaatika/Teadus)</option>
         </select>
       </div>
 
@@ -74,13 +74,13 @@
     </div>
   </header>
 
-  <!-- MOBIILNE VAATE VAHETAJA (Nähtav mobiilis, kui pilt on ees) -->
+  <!-- MOBIILNE VAATE VAHETAJA -->
   <nav id="mobileTabSwitcher" class="mobile-tab-switcher hidden" aria-label="Mobiilivaate valik">
     <button type="button" id="mobTabImage" class="mob-tab active">
-      <span>📄 Tööleht (Puuduta #nr)</span>
+      <span>📄 Pilt ja kiirvaade</span>
     </button>
     <button type="button" id="mobTabAnswers" class="mob-tab">
-      <span>📝 Kõik lahendused</span>
+      <span>📋 Kõik vastused järjest</span>
       <span id="mobAnswerCount" class="mob-badge">0</span>
     </button>
   </nav>
@@ -156,9 +156,9 @@
           <!-- PEAMINE ALLIKA VALIKU KAART -->
           <div class="launchpad-card">
             <div class="launchpad-header">
-              <span class="pill-tag">LAHENDUSKÄIGUGA • VAIKNE • MOBIILISÕBRALIK</span>
+              <span class="pill-tag">TÄPNE ASUKOHT PABERIL • LAHENDUSKÄIK • VAIKNE</span>
               <h2>Jäädvusta ja lahenda töövihik või test</h2>
-              <p>Näitab nii <strong>loomulikku lahenduskäiku</strong> (nagu õpilane kirjutaks vihikusse) kui ka lõppvastust.</p>
+              <p>Näitab täpselt <strong>millise trükitud tehte või küsimuse järele</strong> vastus käib, koos loomuliku lahenduskäiguga.</p>
             </div>
 
             <div class="capture-grid">
@@ -297,7 +297,7 @@
         </div>
       </div>
 
-      <!-- VAADE 3: JÄÄDVUSTATUD PILT + PUHTAD NUMBRIMÄRGISED + ALUMINE LAHENDUSKAART -->
+      <!-- VAADE 3: JÄÄDVUSTATUD PILT + TÄPSED PUNKTID + ALUMINE JUHENDAV KAART -->
       <div id="resultView" class="result-view hidden">
         <!-- Tööriistariba -->
         <div class="result-toolbar">
@@ -323,7 +323,6 @@
           </div>
 
           <div class="toolbar-right">
-            <!-- Vaheta: Väikesed numbrid (#1, #2) vs Täistekstiga märgised -->
             <button
               type="button"
               id="togglePinModeBtn"
@@ -363,13 +362,13 @@
               <div class="scanner-beam"></div>
               <div class="scanner-status-pill">
                 <span class="spinner"></span>
-                <span id="scannerStatusMsg">📸 Arvutan lahenduskäike ja vastuseid...</span>
+                <span id="scannerStatusMsg">📸 Arvutan täpseid asukohti ja lahenduskäike...</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- AKTIIVSE ÜLESANDE HÕLJUV ALUMINE KAART (Ideaalne mobiilis ja arvutis ükshaaval maha kirjutamiseks!) -->
+        <!-- AKTIIVSE ÜLESANDE ALUMINE JUHENDAV KAART -->
         <div id="activePinInspector" class="active-pin-inspector hidden">
           <div class="inspector-top">
             <div class="inspector-title">
@@ -382,10 +381,17 @@
               <button type="button" id="inspCloseBtn" class="icon-btn" title="Sulge kiirvaade">&times;</button>
             </div>
           </div>
+
+          <!-- TÄPNE JUHIS: Millise trükitud tehte või rea juurde see paberil käib -->
+          <div id="inspLocationRow" class="inspector-location"></div>
+
+          <!-- Loomulik lahenduskäik -->
           <div id="inspStepsRow" class="inspector-steps"></div>
+
+          <!-- Lõppvastus -->
           <div class="inspector-answer-row">
             <div class="inspector-final">
-              <span class="final-tag">Vastus:</span>
+              <span class="final-tag">Kirjuta vastuseks:</span>
               <span id="inspFinalAnswer" class="final-val"></span>
             </div>
             <button type="button" id="inspCopyBtn" class="copy-card-btn">
@@ -396,11 +402,11 @@
       </div>
     </section>
 
-    <!-- PAREM / ALUMINE KÜLGPANEEL: TÄIELIK LAHENDUSKÄIKUDE JA VASTUSTE NIMEKIRI -->
+    <!-- PAREM / ALUMINE KÜLGPANEEL: TÄIELIK LAHENDUSKÄIKUDE JA ASUKOHTADE NIMEKIRI -->
     <aside class="sidebar-panel" id="sidebarPanel" aria-label="Lahenduskäigud ja vastused">
       <div class="sidebar-header">
         <div class="sidebar-title-row">
-          <h2>Lahenduskäigud ja vastused</h2>
+          <h2>Kuhu ja mida kirjutada</h2>
           <span id="answerCountBadge" class="count-badge">0</span>
         </div>
         <div class="sidebar-actions">
@@ -433,7 +439,7 @@
             </svg>
           </div>
           <p class="empty-title">Valmis lahendamiseks</p>
-          <p class="empty-desc">Tee pilt töövihikust või jaga ekraani — näed iga ülesande juures nii loomulikku lahenduskäiku kui ka lõppvastust.</p>
+          <p class="empty-desc">Iga kaardi peal on täpselt kirjas, millise paberil oleva tehte või küsimuse järele vastus kirjutada.</p>
         </div>
       </div>
 
@@ -443,7 +449,7 @@
         <input
           type="text"
           id="followUpInput"
-          placeholder="Täpsustus (nt &quot;Lahenda ka ül 52 tabel&quot; või &quot;Pikem lahenduskäik&quot;)..."
+          placeholder="Täpsustus (nt &quot;Lahenda ka ül 51 read 1-6&quot; või &quot;Pikem lahenduskäik&quot;)..."
           disabled
           autocomplete="off"
         />

@@ -1,17 +1,16 @@
 /**
- * QuickSolve HUD — Nutikas töölehtede ja töövihikute lahendaja (koos loomuliku lahenduskäiguga)
- * - Näitab nii õpilasepärast lahenduskäiku (steps) kui ka lõppvastust (answer)
- * - Puhas kompaktne numbrivaade (#1, #2, #3) pildil + alumine kiirvaate riba (Eelmine / Järgmine)
- * - Ühendab sama rea vahelüngad üheks selgeks punktiks ega kata töövihiku teksti kinni
- * - Lahendab ka tabelite lahtrid ja ristkülikud (nt Ül 52 hulkliikmete tegurdamine)
- * - Automaatne mudeli varuvariant, et ükski päring ei jääks mudeli vea taha
+ * QuickSolve HUD — Nutikas töölehtede ja töövihikute lahendaja
+ * - Näitab täpselt KUHU paberil kirjutada (where_to_write: trükitud tekst/valem enne lünka)
+ * - Kui ühel real on mitu lünka, tähistab täpselt mis käib 1. lünka, 2. lünka jne
+ * - Näitab loomulikku 8. klassi õpilase lahenduskäiku (steps) ja lõppvastust (answer)
+ * - Täpne box_2d joondus otse trükitud rea kõrgusele
  */
 
 (() => {
   'use strict';
 
   // =========================================================================
-  // 1. KONSTANDID JA SÜSTEEMIPROMPT (KOOS LAHENDUSKÄIGUGA)
+  // 1. KONSTANDID JA SÜSTEEMIPROMPT
   // =========================================================================
   const STORAGE_KEYS = {
     API_KEY: 'gemini_api_key',
@@ -33,35 +32,29 @@
   const JPEG_QUALITY = 0.92;
   const DEFAULT_TITLE = 'QuickSolve HUD — Nutikas töölehtede lahendaja';
 
-  const SYSTEM_INSTRUCTION = `You are an elite, fast, undetectable school worksheet and workbook solver. Analyze the image with extreme visual precision, locate every unanswered question, empty table cell/rectangle after an "=" sign, fill-in-the-blank line, matching box, or multiple-choice question, and return both the natural student solution steps and the final answer mapped to 2D coordinates.
+  const SYSTEM_INSTRUCTION = `You are an elite, fast, undetectable school worksheet and workbook solver. Analyze the image with extreme visual precision, locate every unanswered question, empty table cell/rectangle after an "=" sign, fill-in-the-blank line, matching box, or multiple-choice question, and return the exact location guide, natural student solution steps, and final answer mapped to 2D coordinates.
 
 STRICT RULES:
 1. ZERO YAPPING: Output strictly the JSON array matching the schema.
-2. AUTOMATIC LANGUAGE MATCHING: Detect the exact language used on the worksheet (e.g., Estonian, English, German, Russian) and write \`question_label\`, \`steps\`, and \`answer\` in that exact language.
-3. NATURAL 8TH-GRADE STUDENT SOLUTION PROCESS (\`steps\`):
-   - Teachers check if the student actually solved the problem or just copied a bare number.
-   - In \`steps\`, write the exact intermediate calculation or reasoning steps the way a real 8th-grade student writes in their workbook (so it looks 100% authentic, like they solved it or wrote it off a smart classmate's notebook).
-   - Examples of \`steps\`:
-     * Factoring & mental math (e.g., "12·28 - 28·11 = ... = ... = ..."): \`"28 · (12 - 11) = 28 · 1 = 28 | Ristsumma: 2 + 8 = 10"\`
-     * Polynomial grouping in table boxes (e.g., "5x + 5y + 3xy + 3x² ="): \`"5(x + y) + 3x(y + x) = (x + y)(5 + 3x)"\`
-     * Expanding brackets (e.g., "(7x + 10)(1 - 3y)"): \`"(7x + 10)(1 - 3y) = 7x - 21xy + 10 - 30y"\`
-     * Linear equation ("5x - 14 = 2x + 19"): \`"5x - 2x = 19 + 14  =>  3x = 33  =>  x = 11"\`
-     * Percentage ("320 € - 15%"): \`"320 · 0,85 = 272 € (või 320 - 48 = 272 €)"\`
-     * Grammar / Biology fact: Write a brief 3–6 word school-level rule/reason (e.g., \`"Ainsuse osastav (keda? mida?)"\` or \`"Fotosüntees toimub kloroplastides"\`).
-4. DO NOT CLUTTER SAME-LINE CHAINED BLANKS:
-   - If a single numbered sub-question (like \`1) 12·28 - 28·11 = ..... = ..... = .....\` plus a \`Ristsumma\` column on the same row) has multiple chained blanks on the same row, DO NOT create 4 separate overlapping pins on that row!
-   - Instead, create ONE single item for that entire row/sub-question, place \`box_2d\` on the first blank after \`=\`, and put all the chained blank values clearly inside \`steps\` and \`answer\`!
-5. SOLVE EMPTY TABLE CELLS, RECTANGLES & MATCHING TASKS:
-   - Look carefully for large empty rectangular boxes or grid cells that contain an expression ending with \`=\` (such as factoring exercises in a 2x3 table grid). Every single cell in such a table MUST be solved!
-   - If an exercise asks to color/match boxes and then write out the remaining unmatched expressions and expand their brackets, solve all of them!
-6. ESTONIAN GRAMMAR & SCIENCE PRECISION:
-   - Compound words (kokku- ja lahkukirjutamine): "vanaema" and "kolmsada" are written together; language names like "eesti keel" are written apart.
-   - Word corrections (võõrsõnad): Keep the exact same grammatical form/part of speech as in the sentence (e.g., "effektne" -> "efektne").
-   - Sentence subject (alus): Return strictly the subject noun itself (e.g., "musträstas") without adjective modifiers ("väike").
-7. SPATIAL PRECISION & UNIQUE IDS:
-   - \`id\` must be sequential integers (1, 2, 3...).
-   - \`question_label\` must be short (e.g., "Ül 51.1", "Ül 52 (1. kast)", "Ül 52 (ava sulud 1)").
-   - \`box_2d\` must be [ymin, xmin, ymax, xmax] on a 0-1000 scale.`;
+2. AUTOMATIC LANGUAGE MATCHING: Detect the exact language used on the worksheet (e.g., Estonian, English, German, Russian) and write \`question_label\`, \`where_to_write\`, \`steps\`, and \`answer\` in that exact language.
+3. CRYSTAL-CLEAR LOCATION GUIDE (\`where_to_write\`):
+   - On a phone screen, the student needs to know IMMEDIATELY which exact printed equation, table cell, or line on their paper this answer belongs to.
+   - Set \`where_to_write\` to quote the exact printed text/formula right before the blank (e.g., \`'Ül 52 tabel (2. rida, vasak kast): "6xy - 5x + 3x² - 10y ="'\` or \`'Ül 51 rida 1) "12·28 - 28·11 = ... = ... = ..."' \` or \`'Ül 52 alumine osa, rida 1) ".......... = .........."' \`).
+4. MULTI-BLANK CLARITY (WHEN A LINE HAS MULTIPLE BLANKS):
+   - If a single row has multiple blanks (such as \`1) ....... = ....... = ....... | Ristsumma: .......\` or \`1) ....... = .......\`), create ONE item for that row and clearly label what goes into each blank inside \`answer\` and \`steps\`!
+   - Example for \`1) 12·28 - 28·11 = ... = ... = ...\`:
+     * \`steps\`: \`"1. lünk: 28·(12 - 11) | 2. lünk: 28·1 | 3. lünk: 28 | Ristsumma: 2 + 8 = 10"\`
+     * \`answer\`: \`"28·(12-11) = 28·1 = 28  (Ristsumma: 2+8 = 10)"\`
+   - Example for \`1) [avaldis] = [ava sulud]\`:
+     * \`steps\`: \`"1. lünk (enne = märki): (7x + 10)(1 - 3y) | 2. lünk (pärast = märki): 7x - 21xy + 10 - 30y"\`
+     * \`answer\`: \`"(7x + 10)(1 - 3y) = 7x - 21xy + 10 - 30y"\`
+5. NATURAL 8TH-GRADE STUDENT SOLUTION PROCESS (\`steps\`):
+   - Write intermediate calculation or factoring steps the way a real 8th-grade student writes in their workbook so the teacher sees full work.
+   - For polynomial factoring by grouping (e.g. \`6xy - 5x + 3x² - 10y\`), group terms that share a common factor (even if you rearrange 1st & 4th terms: \`(6xy - 10y) + (3x² - 5x) = 2y(3x - 5) + x(3x - 5) = (x + 2y)(3x - 5)\`). Verify by expanding your factored result that it matches one of the answer boxes on the worksheet!
+6. EXACT \`box_2d\` SPATIAL CALIBRATION:
+   - \`box_2d\` [ymin, xmin, ymax, xmax] (0–1000 scale) must be anchored at the EXACT vertical height (\`ymin\` to \`ymax\`) of the printed line or empty box where the student writes.
+   - For numbered lines \`1)\`, \`2)\`, \`3)\`, \`ymin\` and \`ymax\` MUST be on the exact same horizontal row as the printed \`1)\`, \`2)\`, \`3)\` — never shift the box down onto the text below!
+   - For table cells with a printed formula at the top of the cell, place \`box_2d\` inside the empty writing space of that specific cell.`;
 
   const RESPONSE_SCHEMA = {
     type: 'ARRAY',
@@ -74,10 +67,11 @@ STRICT RULES:
           items: { type: 'INTEGER' },
         },
         question_label: { type: 'STRING' },
+        where_to_write: { type: 'STRING' },
         steps: { type: 'STRING' },
         answer: { type: 'STRING' },
       },
-      required: ['id', 'box_2d', 'question_label', 'steps', 'answer'],
+      required: ['id', 'box_2d', 'question_label', 'where_to_write', 'steps', 'answer'],
     },
   };
 
@@ -149,6 +143,7 @@ STRICT RULES:
   const inspPrevBtn = document.getElementById('inspPrevBtn');
   const inspNextBtn = document.getElementById('inspNextBtn');
   const inspCloseBtn = document.getElementById('inspCloseBtn');
+  const inspLocationRow = document.getElementById('inspLocationRow');
   const inspStepsRow = document.getElementById('inspStepsRow');
   const inspFinalAnswer = document.getElementById('inspFinalAnswer');
   const inspCopyBtn = document.getElementById('inspCopyBtn');
@@ -741,7 +736,7 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 9. GEMINI REST API PÄRING KOOS AUTOMAATSE VARUMUDELIGA
+  // 9. GEMINI REST API PÄRING
   // =========================================================================
   async function callGeminiModel(model, apiKey, payload, signal) {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
@@ -810,14 +805,14 @@ STRICT RULES:
     setStatus('busy', '📸 Lahendan...');
     solvingScanner.classList.remove('hidden');
     scannerStatusMsg.textContent = followUpInstruction
-      ? 'Uuendan lahenduskäike ja vastuseid...'
-      : '📸 Arvutan lahenduskäike ja vastuseid...';
+      ? 'Uuendan lahenduskäike ja asukohti...'
+      : '📸 Arvutan täpseid asukohti ja lahenduskäike...';
 
     followUpInput.disabled = true;
     followUpSubmitBtn.disabled = true;
 
     let userPromptText =
-      'Solve every single exercise, table cell rectangle (like factoring grids), and question on this page. Group chained blanks on the same equation row into a single item so pins never overlap. Include natural 8th-grade student intermediate steps in `steps` and the final result in `answer`.';
+      'Solve every exercise, table cell rectangle (like factoring grids), and question on this page. In `where_to_write`, quote the exact printed text or formula right before the blank so the student knows immediately where to write on their paper. If a row has multiple blanks, clearly label what goes into each blank (1. lünk, 2. lünk, etc.). Place `box_2d` at the exact vertical height of the blank line.';
 
     if (followUpInstruction && currentAnswers.length > 0) {
       userPromptText = `Current JSON answers:\n${JSON.stringify(
@@ -853,7 +848,6 @@ STRICT RULES:
       },
     };
 
-    // Koostame mudelite järjekorra: esmalt valitud mudel, seejärel automaatsed varumudelid
     const modelsToTry = [preferredModel, ...FALLBACK_MODELS.filter((m) => m !== preferredModel)];
     let lastError = null;
 
@@ -880,7 +874,6 @@ STRICT RULES:
         } catch (err) {
           if (err && err.name === 'AbortError') throw err;
           lastError = err;
-          // Kui viga on vigases API võtmes (400 API_KEY_INVALID / 403), ära proovi teisi mudeleid
           if (err && (String(err.message).includes('API_KEY') || err.status === 403)) {
             break;
           }
@@ -933,7 +926,6 @@ STRICT RULES:
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      // Kui väga mahuka töövihiku lehe puhul jäi JSON massiivi lõpp poolikuks, taastame kõik terved objektid
       const lastBrace = cleaned.lastIndexOf('}');
       if (lastBrace !== -1) {
         const repaired = `${cleaned.slice(0, lastBrace + 1)}]`;
@@ -959,18 +951,19 @@ STRICT RULES:
       if (ymax < ymin) [ymin, ymax] = [ymax, ymin];
       if (xmax < xmin) [xmin, xmax] = [xmax, xmin];
 
-      if (ymax - ymin < 18) ymax = Math.min(1000, ymin + 20);
-      if (xmax - xmin < 28) xmax = Math.min(1000, xmin + 32);
+      if (ymax - ymin < 14) ymax = Math.min(1000, ymin + 16);
+      if (xmax - xmin < 24) xmax = Math.min(1000, xmin + 28);
 
       let label = String(item.question_label || `Ül ${uniqueId}`).trim();
-      if (label.length > 36) {
-        label = `${label.slice(0, 34)}…`;
+      if (label.length > 38) {
+        label = `${label.slice(0, 36)}…`;
       }
 
       return {
         id: uniqueId,
         box_2d: [ymin, xmin, ymax, xmax],
         question_label: label,
+        where_to_write: String(item.where_to_write || label).trim(),
         steps: String(item.steps ?? '').trim(),
         answer: String(item.answer ?? '').trim(),
       };
@@ -993,8 +986,8 @@ STRICT RULES:
         <div class="empty-icon">
           <span class="spinner"></span>
         </div>
-        <p class="empty-title">Arvutan lahenduskäike...</p>
-        <p class="empty-desc">Koostan õpilasepäraseid vahetehteid ja vastuseid.</p>
+        <p class="empty-title">Arvutan lahenduskäike ja asukohti...</p>
+        <p class="empty-desc">Tuvastan trükitud tehted ja koostan iga lünga jaoks täpse juhise.</p>
       </div>
     `;
   }
@@ -1069,10 +1062,17 @@ STRICT RULES:
       pillEl.appendChild(pillTextEl);
       boxEl.appendChild(pillEl);
 
-      // 2. Loo lahenduskäigu ja vastuse kaart külgpaneelile
+      // 2. Loo täpne kaart külgpaneelile (Asukoht paberil + Lahenduskäik + Vastus)
       const cardEl = document.createElement('div');
       cardEl.className = 'answer-card';
       cardEl.dataset.id = String(item.id);
+
+      const locationHtml = item.where_to_write
+        ? `<div class="card-location-box">
+             <span class="card-location-label">📍 Kuhu paberil kirjutada (otsi see tekst):</span>
+             ${escapeHtml(item.where_to_write)}
+           </div>`
+        : '';
 
       const hasDistinctSteps =
         item.steps &&
@@ -1095,6 +1095,7 @@ STRICT RULES:
             <span>Kopeeri</span>
           </button>
         </div>
+        ${locationHtml}
         ${stepsHtml}
         <div class="answer-value">
           <span class="answer-value-prefix">Vastus:</span>${escapeHtml(item.answer)}
@@ -1108,7 +1109,6 @@ STRICT RULES:
         copyTextToClipboard(textToCopy, copyBtn);
       });
 
-      // Märgise või kaardi puudutamine avab alumise kiirvaate ja tõstab ülesande esile
       boxEl.addEventListener('mouseenter', () => setItemHighlight(item.id, true));
       boxEl.addEventListener('mouseleave', () => {
         if (currentAnswers[selectedPinIndex]?.id !== item.id) {
@@ -1137,7 +1137,6 @@ STRICT RULES:
       answersList.appendChild(cardEl);
     });
 
-    // Vali automaatselt esimene ülesanne (#1), et kasutaja näeks kohe allservas lahenduskäiku!
     selectActivePinByIndex(0, false);
   }
 
@@ -1147,7 +1146,6 @@ STRICT RULES:
     selectedPinIndex = safeIndex;
     const item = currentAnswers[safeIndex];
 
-    // Eemalda vana esiletõstmine ja tõsta valitud #id esile
     overlayLayer.querySelectorAll('.spatial-box').forEach((el) => {
       el.classList.toggle('is-highlighted', el.dataset.id === String(item.id));
     });
@@ -1159,6 +1157,14 @@ STRICT RULES:
     activePinInspector.classList.remove('hidden');
     inspIdBadge.textContent = `#${item.id}`;
     inspQuestionLabel.textContent = item.question_label;
+
+    if (item.where_to_write) {
+      inspLocationRow.classList.remove('hidden');
+      inspLocationRow.textContent = `📍 Kuhu kirjutada: ${item.where_to_write}`;
+    } else {
+      inspLocationRow.classList.add('hidden');
+      inspLocationRow.textContent = '';
+    }
 
     if (item.steps && item.steps.toLowerCase() !== item.answer.toLowerCase()) {
       inspStepsRow.classList.remove('hidden');
@@ -1172,6 +1178,10 @@ STRICT RULES:
 
     if (scrollIntoView) {
       const selector = `[data-id="${CSS.escape(String(item.id))}"]`;
+      const boxEl = overlayLayer.querySelector(selector);
+      if (boxEl) {
+        boxEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }
       const cardEl = answersList.querySelector(selector);
       if (cardEl && window.innerWidth > 900) {
         cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1193,7 +1203,6 @@ STRICT RULES:
   // 11. TÖÖRIISTARIBA NUPUD, KIIRVAATE NAVIGEERIMINE JA KOPEERIMINE
   // =========================================================================
   function initToolbarAndSidebarEvents() {
-    // Vaheta kompaktsete numbrite (#1, #2) ja täistekstiga märgiste vahel
     togglePinModeBtn.addEventListener('click', () => {
       compactPinMode = !compactPinMode;
       overlayLayer.classList.toggle('compact-pins', compactPinMode);
@@ -1203,7 +1212,6 @@ STRICT RULES:
         : '🔢 Ainult numbrid (#1, #2)';
     });
 
-    // Alumise kiirvaate Eelmine / Järgmine nupud
     inspPrevBtn.addEventListener('click', () => {
       selectActivePinByIndex(selectedPinIndex - 1, true);
     });
@@ -1223,7 +1231,6 @@ STRICT RULES:
       copyTextToClipboard(text, inspCopyBtn);
     });
 
-    // Peida / näita kõiki märgiseid
     toggleOverlaysBtn.addEventListener('pointerdown', () => {
       isHoldingHide = false;
       holdHideTimer = setTimeout(() => {
@@ -1258,10 +1265,10 @@ STRICT RULES:
       const formatted = currentAnswers
         .map((a) =>
           a.steps
-            ? `#${a.id} (${a.question_label}): ${a.steps}  =>  Vastus: ${a.answer}`
-            : `#${a.id} (${a.question_label}): ${a.answer}`
+            ? `#${a.id} (${a.where_to_write || a.question_label}):\n  Lahenduskäik: ${a.steps}\n  Vastus: ${a.answer}`
+            : `#${a.id} (${a.where_to_write || a.question_label}): ${a.answer}`
         )
-        .join('\n');
+        .join('\n\n');
       try {
         await navigator.clipboard.writeText(formatted);
         copyAllText.textContent = 'Kopeeritud!';
