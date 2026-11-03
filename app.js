@@ -1,7 +1,10 @@
 /**
- * QuickSolve HUD — Nutikas töölehtede ja testide kiirlahendaja
- * Toetab taustataimerit (Web Worker), Ultra HD ekraanipildi haaramist otse videorajalt (ImageCapture),
- * lõikelaualt kleepimist (Ctrl+V), kaamerat ja 2D koordinaatidega vastuste ülekatet.
+ * QuickSolve HUD — Vaikne, säästlik ja täpne töölehtede kiirlahendaja
+ * - 100% hääletu (ei mängi ühtegi heli)
+ * - Vaikimisi mudel: gemini-3.8-flash
+ * - Samm-sammult API võtme seadistamise juhend alguses
+ * - Vahemälu (vähem API kulu) + kontrastiparandus terava teksti jaoks
+ * - Mobiili- ja arvutisõbralik liides
  */
 
 (() => {
@@ -13,36 +16,37 @@
   const STORAGE_KEYS = {
     API_KEY: 'gemini_api_key',
     MODEL: 'gemini_model',
+    MODEL_MIGRATED_V38: 'quicksolve_v38_default_set',
     COOLDOWN: 'quicksolve_cooldown',
-    AUDIO_CUE: 'quicksolve_audio_cue',
+    GUIDE_DISMISSED: 'quicksolve_guide_dismissed',
   };
 
   const DEFAULT_MODEL = 'gemini-3.8-flash';
-  // Tõstetud pildikvaliteet (kuni 2560px ja 0.95 JPEG), et väikesed sümbolid, miinusmärgid ja tekst oleksid üliteravad
-  const MAX_IMAGE_EDGE = 2560;
-  const JPEG_QUALITY = 0.95;
+  const MAX_IMAGE_EDGE = 2400;
+  const JPEG_QUALITY = 0.92;
   const DEFAULT_TITLE = 'QuickSolve HUD — Nutikas töölehtede lahendaja';
 
-  const SYSTEM_INSTRUCTION = `You are a fast, undetectable worksheet solver. Analyze the screen capture, locate every unanswered question, empty input box, fill-in-the-blank line, or multiple-choice question, and return the exact answers mapped to their 2D spatial coordinates.
+  const SYSTEM_INSTRUCTION = `You are an elite, fast, undetectable worksheet solver. Analyze the image with extreme visual precision, locate every unanswered question, empty input box, fill-in-the-blank line, or multiple-choice question, verify each calculation or grammar rule internally, and return the exact final answers mapped to their 2D spatial coordinates.
 
 STRICT RULES:
 1. ZERO YAPPING: Output strictly the JSON array matching the schema. Never include explanations, steps, greetings, or markdown blocks.
-2. AUTOMATIC LANGUAGE MATCHING: Detect the exact language used on the worksheet (e.g., Estonian, German, English, Russian) and write each answer in that exact language. If it is a foreign language translation exercise, follow the worksheet's instructions.
+2. AUTOMATIC LANGUAGE MATCHING: Detect the exact language used on the worksheet (e.g., Estonian, English, German, Russian) and write each answer in that exact language.
 3. UNDETECTABLE 8TH-GRADE STYLE:
-   - Keep answers as short and direct as possible while still being 100% correct.
-   - For open-ended or full-sentence questions, write like a normal 8th-grade student. Use simple, everyday vocabulary and straightforward sentence structure.
-   - NEVER use robotic AI phrases ("Furthermore", "In conclusion", "It is important to note", "delve", "testament", "crucial").
-   - Do not over-explain. If a 4-word phrase answers the question completely, use 4 words instead of a paragraph.
+   - Keep answers as short, natural, and direct as possible while still being 100% accurate.
+   - For open-ended questions, write like a smart 8th-grade student using clear, everyday school terminology.
+   - NEVER use robotic AI phrases ("Furthermore", "In conclusion", "It is important to note", "delve").
+   - If 1–5 words answer the question completely, use 1–5 words instead of a long sentence.
 4. ESTONIAN GRAMMAR, ORTHOGRAPHY & SCIENCE PRECISION:
-   - Compound words (kokku- ja lahkukirjutamine): Verify carefully whether words are written together or apart (e.g., "vanaema" and "kolmsada" are written together, while language names like "eesti keel" are written apart).
+   - Compound words (kokku- ja lahkukirjutamine): Verify carefully whether Estonian words are written together or apart (e.g., "vanaema" and "kolmsada" are single compound words written together; language names like "eesti keel" are written apart).
    - Word corrections (võõrsõnad / õigekiri): Keep the exact same grammatical form, case, and part of speech as the word in the sentence (e.g., if correcting the adjective "effektne", output "efektne", NOT the noun "efekt").
-   - Sentence parts (lauseliikmed): When asked for the subject (alus - kes/mis?), return strictly the subject noun itself (e.g., "musträstas") without adjective modifiers (täiend, such as "väike").
-   - Biology precision: Plant roots absorb water and mineral salts (vett ja mineraalaineid) and anchor the plant into the soil (kinnitavad taime mulda).
-5. MULTIPLE CHOICE / CHECKBOXES: Place \`box_2d\` directly over the correct choice's checkbox, radio button, or letter, and set \`answer\` to "✓ [Option Letter/Text]".
+   - Sentence parts (lauseliikmed): When asked for the grammatical subject (alus — kes/mis teeb?), return strictly the subject noun itself (e.g., "musträstas") without adjective modifiers (täiend, such as "väike").
+   - Biology & Science precision: Use accurate school biology terms (e.g., plant roots absorb water and mineral salts — "vee ja mineraalainete imamiseks ning taime kinnitamiseks mulda").
+   - Math precision: Double-check every sign (+ / -), percentage, and equation by substituting your answer back into the original equation.
+5. MULTIPLE CHOICE / CHECKBOXES: Place \`box_2d\` directly over the correct choice's radio button, checkbox, or letter, and set \`answer\` to "✓ [Option Letter]".
 6. SPATIAL PRECISION & UNIQUE IDS:
-   - \`id\` must be strictly sequential unique integers (1, 2, 3, 4...) for every single blank or input field, even when one question has two blanks.
-   - \`question_label\` must be a short 2–4 word label (e.g., "Ül 1", "Ül 6 (1. lünk)", "Ül 9a") — never copy the entire question sentence into \`question_label\`.
-   - \`box_2d\` must be [ymin, xmin, ymax, xmax] on a 0-1000 scale pinpointing the exact blank spot where the student needs to write or click.`;
+   - \`id\` must be strictly sequential unique integers (1, 2, 3, 4...) for every single blank or input field.
+   - \`question_label\` must be a short 2–4 word identifier (e.g., "Ül 1", "Ül 6 (1. lünk)", "Ül 9a") — never copy the full question sentence into \`question_label\`.
+   - \`box_2d\` must be [ymin, xmin, ymax, xmax] on a 0-1000 scale pinpointing the exact blank input box, dotted line, or multiple-choice option.`;
 
   const RESPONSE_SCHEMA = {
     type: 'ARRAY',
@@ -66,10 +70,23 @@ STRICT RULES:
   // =========================================================================
   const apiKeyInput = document.getElementById('apiKeyInput');
   const toggleKeyVisibilityBtn = document.getElementById('toggleKeyVisibilityBtn');
+  const openGuideBtn = document.getElementById('openGuideBtn');
   const modelSelect = document.getElementById('modelSelect');
-  const audioCueCheckbox = document.getElementById('audioCueCheckbox');
   const statusBadge = document.getElementById('statusBadge');
   const statusText = document.getElementById('statusText');
+
+  // API Võtme juhendi elemendid
+  const onboardingCard = document.getElementById('onboardingCard');
+  const closeGuideBtn = document.getElementById('closeGuideBtn');
+  const guideApiKeyInput = document.getElementById('guideApiKeyInput');
+  const saveGuideKeyBtn = document.getElementById('saveGuideKeyBtn');
+
+  // Mobiilse vaate vahetaja
+  const mainWorkspace = document.getElementById('mainWorkspace');
+  const mobileTabSwitcher = document.getElementById('mobileTabSwitcher');
+  const mobTabImage = document.getElementById('mobTabImage');
+  const mobTabAnswers = document.getElementById('mobTabAnswers');
+  const mobAnswerCount = document.getElementById('mobAnswerCount');
 
   // Vaated
   const dragOverlay = document.getElementById('dragOverlay');
@@ -121,7 +138,7 @@ STRICT RULES:
   const followUpSubmitBtn = document.getElementById('followUpSubmitBtn');
 
   // =========================================================================
-  // 3. RAKENDUSE OLEK
+  // 3. RAKENDUSE OLEK JA SÄÄSTLIK VAHEMÄLU
   // =========================================================================
   let mediaStream = null;
   let countdownWorker = null;
@@ -129,19 +146,30 @@ STRICT RULES:
   let isSolving = false;
   let currentBase64Jpeg = null;
   let currentDataUrl = null;
+  let currentImageSignature = '';
   let currentAnswers = [];
   let overlaysHidden = false;
   let holdHideTimer = null;
   let isHoldingHide = false;
-  let audioCtx = null;
   let activeAbortController = null;
 
+  // Hoiab ära topelt API kulu, kui sama pilti lahendatakse sama mudeliga
+  const responseCache = new Map();
+
   // =========================================================================
-  // 4. SEADISTUSTE SALVESTAMINE (LOCALSTORAGE)
+  // 4. SEADISTUSTE SALVESTAMINE JA API VÕTME JUHEND
   // =========================================================================
-  function initPersistence() {
-    const savedKey = localStorage.getItem(STORAGE_KEYS.API_KEY) || '';
+  function initPersistenceAndGuide() {
+    const savedKey = (localStorage.getItem(STORAGE_KEYS.API_KEY) || '').trim();
     apiKeyInput.value = savedKey;
+    guideApiKeyInput.value = savedKey;
+
+    // Tagame, et gemini-3.8-flash on vaikimisi valitud
+    const migrated = localStorage.getItem(STORAGE_KEYS.MODEL_MIGRATED_V38);
+    if (!migrated) {
+      localStorage.setItem(STORAGE_KEYS.MODEL, DEFAULT_MODEL);
+      localStorage.setItem(STORAGE_KEYS.MODEL_MIGRATED_V38, 'true');
+    }
 
     const savedModel = localStorage.getItem(STORAGE_KEYS.MODEL) || DEFAULT_MODEL;
     if ([...modelSelect.options].some((o) => o.value === savedModel)) {
@@ -159,22 +187,67 @@ STRICT RULES:
       cooldownInput.value = '3';
     }
 
-    const savedAudio = localStorage.getItem(STORAGE_KEYS.AUDIO_CUE);
-    if (savedAudio !== null) {
-      audioCueCheckbox.checked = savedAudio === 'true';
+    // Kui API võti on juba olemas, peida alguse juhend automaatselt
+    const hasValidKey = savedKey.length > 15;
+    const guideDismissed = localStorage.getItem(STORAGE_KEYS.GUIDE_DISMISSED) === 'true';
+    if (hasValidKey || guideDismissed) {
+      onboardingCard.classList.add('hidden');
+    } else {
+      onboardingCard.classList.remove('hidden');
+    }
+
+    // Kui mobiiltelefon ei toeta getDisplayMedia ekraanijagamist, peidame selle valiku
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
+      startStreamBtn.classList.add('hidden');
     }
 
     updateConnectionBadge();
 
+    // Sünkrooni ülemine API võtme väli ja juhendi sisendväli
     apiKeyInput.addEventListener('input', () => {
       const trimmed = apiKeyInput.value.trim();
+      guideApiKeyInput.value = trimmed;
       localStorage.setItem(STORAGE_KEYS.API_KEY, trimmed);
       updateConnectionBadge();
+    });
+
+    guideApiKeyInput.addEventListener('input', () => {
+      const trimmed = guideApiKeyInput.value.trim();
+      apiKeyInput.value = trimmed;
+      localStorage.setItem(STORAGE_KEYS.API_KEY, trimmed);
+      updateConnectionBadge();
+    });
+
+    saveGuideKeyBtn.addEventListener('click', () => {
+      const trimmed = guideApiKeyInput.value.trim();
+      if (trimmed.length < 15) {
+        guideApiKeyInput.focus();
+        showError('Vigane API võti', 'Kopeeri Google AI Studiost täispikk API võti (algab tähtedega AIza...).');
+        return;
+      }
+      apiKeyInput.value = trimmed;
+      localStorage.setItem(STORAGE_KEYS.API_KEY, trimmed);
+      localStorage.setItem(STORAGE_KEYS.GUIDE_DISMISSED, 'true');
+      onboardingCard.classList.add('hidden');
+      hideError();
+      updateConnectionBadge();
+    });
+
+    openGuideBtn.addEventListener('click', () => {
+      showView('launchpad');
+      onboardingCard.classList.remove('hidden');
+      guideApiKeyInput.focus();
+    });
+
+    closeGuideBtn.addEventListener('click', () => {
+      localStorage.setItem(STORAGE_KEYS.GUIDE_DISMISSED, 'true');
+      onboardingCard.classList.add('hidden');
     });
 
     toggleKeyVisibilityBtn.addEventListener('click', () => {
       const isPassword = apiKeyInput.type === 'password';
       apiKeyInput.type = isPassword ? 'text' : 'password';
+      guideApiKeyInput.type = isPassword ? 'text' : 'password';
     });
 
     modelSelect.addEventListener('change', () => {
@@ -185,10 +258,6 @@ STRICT RULES:
       const val = clampCooldown(parseInt(cooldownInput.value, 10));
       cooldownInput.value = String(val);
       localStorage.setItem(STORAGE_KEYS.COOLDOWN, String(val));
-    });
-
-    audioCueCheckbox.addEventListener('change', () => {
-      localStorage.setItem(STORAGE_KEYS.AUDIO_CUE, String(audioCueCheckbox.checked));
     });
   }
 
@@ -213,9 +282,9 @@ STRICT RULES:
 
   function updateConnectionBadge() {
     if (isSolving) return;
-    const hasKey = apiKeyInput.value.trim().length > 10;
+    const hasKey = apiKeyInput.value.trim().length > 15;
     if (!hasKey) {
-      setStatus('warn', 'API võti puudub');
+      setStatus('warn', 'Lisa API võti');
     } else if (isStreamActive()) {
       setStatus('ready', 'Otsepilt valmis');
     } else {
@@ -224,80 +293,7 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 5. VAIKNE HELISIGNAAL (WEB AUDIO API)
-  // =========================================================================
-  function ensureAudioContext() {
-    if (!audioCueCheckbox.checked) return null;
-    try {
-      if (!audioCtx) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) {
-          audioCtx = new AudioContextClass();
-        }
-      }
-      if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-      return audioCtx;
-    } catch {
-      return null;
-    }
-  }
-
-  function playCaptureClick() {
-    const ctx = ensureAudioContext();
-    if (!ctx) return;
-    try {
-      const now = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(160, now);
-      osc.frequency.exponentialRampToValueAtTime(65, now + 0.06);
-
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start(now);
-      osc.stop(now + 0.06);
-    } catch {
-      // Ignoreeri helivigu
-    }
-  }
-
-  function playCompletionDoubleClick() {
-    const ctx = ensureAudioContext();
-    if (!ctx) return;
-    try {
-      [0, 0.085].forEach((offset, idx) => {
-        const start = ctx.currentTime + offset;
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(idx === 0 ? 190 : 240, start);
-        osc.frequency.exponentialRampToValueAtTime(95, start + 0.055);
-
-        gain.gain.setValueAtTime(0.07, start);
-        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.055);
-
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        osc.start(start);
-        osc.stop(start + 0.055);
-      });
-    } catch {
-      // Ignoreeri helivigu
-    }
-  }
-
-  // =========================================================================
-  // 6. TAUSTATAIMER (WEB WORKER — EI AEGLUSTU TAUSTAKAARDIL)
+  // 5. HÄÄLETU TAUSTATAIMER (WEB WORKER — EI MÄNGI ÜHTEGI HELI)
   // =========================================================================
   function createCountdownWorker() {
     const workerCode = `
@@ -361,8 +357,6 @@ STRICT RULES:
       return;
     }
 
-    ensureAudioContext();
-
     const seconds = clampCooldown(parseInt(cooldownInput.value, 10));
     cooldownInput.value = String(seconds);
     localStorage.setItem(STORAGE_KEYS.COOLDOWN, String(seconds));
@@ -407,13 +401,11 @@ STRICT RULES:
     isCountingDown = false;
     countdownOverlay.classList.add('hidden');
     document.title = '📸 Solving...';
-    playCaptureClick();
-
     await grabStreamFrameAndSolve();
   }
 
   // =========================================================================
-  // 7. ULTRA HD EKRAANIJAGAMINE JA OTSEKAADRI HAARAMINE
+  // 6. ULTRA HD EKRAANIJAGAMINE JA KAADRI HAARAMINE
   // =========================================================================
   function isStreamActive() {
     if (!mediaStream) return false;
@@ -428,7 +420,6 @@ STRICT RULES:
         stopScreenStream(false);
       }
 
-      // Küsi brauserilt maksimaalset (kuni 4K / 1440p / 1080p) teravust, et väike tekst oleks selge
       mediaStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           displaySurface: 'monitor',
@@ -469,9 +460,7 @@ STRICT RULES:
     liveVideo.srcObject = null;
     updateStreamButtonsVisibility();
 
-    if (resetToLaunchpad && !currentDataUrl) {
-      showView('launchpad');
-    } else if (resetToLaunchpad && currentDataUrl) {
+    if (resetToLaunchpad) {
       showView('launchpad');
       clearResults();
     }
@@ -517,7 +506,7 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 8. PILDI EELTÖÖTLUS (KUNI 2560PX, JPEG 0.95 TERAVUS)
+  // 7. PILDI TERAVUSTAMINE JA OPTIMEERIMINE (SÄÄSTLIK + TERAV TEKST)
   // =========================================================================
   function processDrawableAndSolve(drawable, rawWidth, rawHeight) {
     hideError();
@@ -539,13 +528,15 @@ STRICT RULES:
     const ctx = canvas.getContext('2d', { alpha: false });
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
+    // Kerge kontrasti tõstmine muudab peenikese teksti, komad ja miinusmärgid AI jaoks oluliselt selgemaks
+    ctx.filter = 'contrast(1.06)';
     ctx.drawImage(drawable, 0, 0, targetWidth, targetHeight);
 
     if (typeof drawable.close === 'function') {
       try {
         drawable.close();
       } catch {
-        // Ignoreeri sulgemise viga
+        // Ignoreeri
       }
     }
 
@@ -554,15 +545,17 @@ STRICT RULES:
 
     currentDataUrl = dataUrl;
     currentBase64Jpeg = base64Data;
+    currentImageSignature = `${base64Data.length}_${base64Data.slice(0, 48)}_${base64Data.slice(-48)}`;
 
     capturedImage.src = dataUrl;
     imageAspectWrapper.style.aspectRatio = `${targetWidth} / ${targetHeight}`;
 
     showView('result');
+    setMobileTab('image');
     updateStreamButtonsVisibility();
 
     clearOverlayAndCardsForNewSolve();
-    solveWithGemini();
+    solveWithGemini('', false);
   }
 
   function loadFileOrBlobAndSolve(file) {
@@ -588,7 +581,7 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 9. LÕIKELAUD (CTRL+V), KAAMERA JA FAILIDE KUULAJAD
+  // 8. LÕIKELAUD (CTRL+V), KAAMERA, FAILID JA MOBIILSED VAHEKAARDID
   // =========================================================================
   function initCaptureListeners() {
     startStreamBtn.addEventListener('click', startScreenStream);
@@ -614,9 +607,13 @@ STRICT RULES:
 
     retrySolveBtn.addEventListener('click', () => {
       if (currentBase64Jpeg) {
-        solveWithGemini();
+        solveWithGemini('', true);
       }
     });
+
+    // Mobiilivaate vahekaartide vahetus
+    mobTabImage.addEventListener('click', () => setMobileTab('image'));
+    mobTabAnswers.addEventListener('click', () => setMobileTab('answers'));
 
     // Globaalne Ctrl+V kleepimine
     window.addEventListener('paste', (e) => {
@@ -628,7 +625,6 @@ STRICT RULES:
           e.preventDefault();
           const blob = item.getAsFile();
           if (blob) {
-            ensureAudioContext();
             loadFileOrBlobAndSolve(blob);
           }
           return;
@@ -637,7 +633,6 @@ STRICT RULES:
     });
 
     pasteCardBtn.addEventListener('click', async () => {
-      ensureAudioContext();
       if (navigator.clipboard && typeof navigator.clipboard.read === 'function') {
         try {
           const items = await navigator.clipboard.read();
@@ -659,7 +654,6 @@ STRICT RULES:
     });
 
     cameraBtn.addEventListener('click', () => {
-      ensureAudioContext();
       cameraInput.value = '';
       cameraInput.click();
     });
@@ -671,7 +665,6 @@ STRICT RULES:
     });
 
     uploadBtn.addEventListener('click', () => {
-      ensureAudioContext();
       fileInput.value = '';
       fileInput.click();
     });
@@ -711,28 +704,46 @@ STRICT RULES:
       dragCounter = 0;
       dragOverlay.classList.add('hidden');
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
-        ensureAudioContext();
         loadFileOrBlobAndSolve(e.dataTransfer.files[0]);
       }
     });
   }
 
+  function setMobileTab(tabName) {
+    const isImage = tabName === 'image';
+    mobTabImage.classList.toggle('active', isImage);
+    mobTabAnswers.classList.toggle('active', !isImage);
+    mainWorkspace.classList.toggle('mob-mode-image', isImage);
+    mainWorkspace.classList.toggle('mob-mode-answers', !isImage);
+  }
+
   // =========================================================================
-  // 10. GEMINI REST API PÄRING JA JÄRELKÜSIMUSED
+  // 9. GEMINI REST API PÄRING, VAHEMÄLU JA PARANDUSED
   // =========================================================================
-  async function solveWithGemini(followUpInstruction = '') {
+  async function solveWithGemini(followUpInstruction = '', bypassCache = false) {
     if (!currentBase64Jpeg) return;
 
     const apiKey = apiKeyInput.value.trim();
     if (!apiKey) {
       document.title = DEFAULT_TITLE;
-      setStatus('warn', 'API võti puudub');
-      showError('Gemini API võti on vajalik', 'Sisesta ülemisele ribale oma Gemini API võti töölehe lahendamiseks.');
+      setStatus('warn', 'Lisa API võti');
+      showError('Gemini API võti on vajalik', 'Sisesta ülemisele ribale oma Gemini API võti (vaata "? API juhend" nuppu).');
       apiKeyInput.focus();
       return;
     }
 
     const model = modelSelect.value || DEFAULT_MODEL;
+    const cacheKey = `${model}::${currentImageSignature}::${followUpInstruction}`;
+
+    // Kui täpselt sama pilt ja mudel on juba lahendatud, võta vastus kohe mälust (säästab API limiiti!)
+    if (!bypassCache && !followUpInstruction && responseCache.has(cacheKey)) {
+      const cachedItems = responseCache.get(cacheKey);
+      currentAnswers = cachedItems;
+      renderSpatialOverlaysAndCards(cachedItems);
+      document.title = `✅ Ready! (${cachedItems.length} Answers)`;
+      setStatus('ready', `✅ Valmis (${cachedItems.length})`);
+      return;
+    }
 
     if (activeAbortController) {
       activeAbortController.abort();
@@ -745,19 +756,19 @@ STRICT RULES:
     setStatus('busy', '📸 Lahendan...');
     solvingScanner.classList.remove('hidden');
     scannerStatusMsg.textContent = followUpInstruction
-      ? `Uuendan vastuseid mudeliga ${model}...`
-      : `📸 Lahendan töölehte mudeliga ${model}...`;
+      ? `Uuendan vastuseid (${model})...`
+      : `📸 Lahendan töölehte (${model})...`;
 
     followUpInput.disabled = true;
     followUpSubmitBtn.disabled = true;
 
     let userPromptText =
-      'Analyze this worksheet image carefully and return the JSON array of all answers with their exact 2D bounding boxes [ymin, xmin, ymax, xmax] on a 0-1000 scale. Ensure every single blank has a unique sequential id (1, 2, 3...) and a short 2-4 word question_label.';
+      'Solve every question on this worksheet with 100% accuracy. Return the JSON array of answers with exact [ymin, xmin, ymax, xmax] coordinates (0-1000 scale), unique sequential id (1, 2, 3...), and short 2-4 word question_label.';
 
     if (followUpInstruction && currentAnswers.length > 0) {
-      userPromptText = `Here is the current JSON answer key for this worksheet:\n${JSON.stringify(
+      userPromptText = `Current JSON answers:\n${JSON.stringify(
         currentAnswers
-      )}\n\nApply this follow-up instruction or correction from the student: "${followUpInstruction}"\nReturn the complete updated JSON array matching the schema.`;
+      )}\n\nStudent correction/request: "${followUpInstruction}"\nReturn the complete updated JSON array matching the schema.`;
     }
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
@@ -785,7 +796,7 @@ STRICT RULES:
         },
       ],
       generationConfig: {
-        temperature: 0.2,
+        temperature: 0.1,
         responseMimeType: 'application/json',
         responseSchema: RESPONSE_SCHEMA,
       },
@@ -809,7 +820,7 @@ STRICT RULES:
             errDetail = errJson.error.message;
           }
         } catch {
-          // Ignoreeri JSON viga
+          // Ignoreeri
         }
         throw new Error(errDetail);
       }
@@ -819,11 +830,11 @@ STRICT RULES:
       const parsedItems = parseAndNormalizeAnswers(rawText);
 
       currentAnswers = parsedItems;
+      responseCache.set(cacheKey, parsedItems);
       renderSpatialOverlaysAndCards(parsedItems);
 
       document.title = `✅ Ready! (${parsedItems.length} Answers)`;
       setStatus('ready', `✅ Valmis (${parsedItems.length})`);
-      playCompletionDoubleClick();
     } catch (err) {
       if (err && err.name === 'AbortError') return;
       document.title = '⚠️ Viga lahendamisel';
@@ -875,7 +886,6 @@ STRICT RULES:
     }
 
     return parsed.map((item, idx) => {
-      // Tagame alati unikaalse järjestikuse ID (1, 2, 3... N), et mitme lüngaga küsimused ei saaks topelt sama #ID-d
       const uniqueId = idx + 1;
       const box = Array.isArray(item.box_2d) && item.box_2d.length === 4 ? item.box_2d : [100, 100, 140, 260];
 
@@ -901,12 +911,13 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 11. 2D MÄRGISTE JA KÜLGPANEELI KAARTIDE RENDERDAMINE
+  // 10. 2D MÄRGISTE JA KÜLGPANEELI KAARTIDE RENDERDAMINE
   // =========================================================================
   function clearOverlayAndCardsForNewSolve() {
     overlayLayer.innerHTML = '';
     currentAnswers = [];
     answerCountBadge.textContent = '0';
+    mobAnswerCount.textContent = '0';
     copyAllBtn.disabled = true;
     answersList.innerHTML = `
       <div class="empty-answers">
@@ -922,9 +933,11 @@ STRICT RULES:
   function clearResults() {
     currentDataUrl = null;
     currentBase64Jpeg = null;
+    currentImageSignature = '';
     currentAnswers = [];
     overlayLayer.innerHTML = '';
     answerCountBadge.textContent = '0';
+    mobAnswerCount.textContent = '0';
     copyAllBtn.disabled = true;
     followUpInput.disabled = true;
     followUpSubmitBtn.disabled = true;
@@ -935,6 +948,7 @@ STRICT RULES:
     overlayLayer.innerHTML = '';
     answersList.innerHTML = '';
     answerCountBadge.textContent = String(items.length);
+    mobAnswerCount.textContent = String(items.length);
     copyAllBtn.disabled = items.length === 0;
 
     if (items.length === 0) {
@@ -1020,6 +1034,9 @@ STRICT RULES:
       cardEl.addEventListener('mouseenter', () => setItemHighlight(item.id, true));
       cardEl.addEventListener('mouseleave', () => setItemHighlight(item.id, false));
       cardEl.addEventListener('click', () => {
+        if (window.innerWidth <= 900) {
+          setMobileTab('image');
+        }
         setItemHighlight(item.id, true);
         boxEl.classList.toggle('is-expanded');
         boxEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1041,7 +1058,7 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 12. MÄRGISTE PEITMINE (HOIA VÕI KLÕPSA) JA KOPEERIMINE
+  // 11. MÄRGISTE PEITMINE (HOIA VÕI KLÕPSA) JA KOPEERIMINE
   // =========================================================================
   function initToolbarAndSidebarEvents() {
     toggleOverlaysBtn.addEventListener('pointerdown', () => {
@@ -1085,7 +1102,7 @@ STRICT RULES:
           copyAllText.textContent = 'Kopeeri kõik';
         }, 1400);
       } catch {
-        // Ignoreeri viga
+        // Ignoreeri
       }
     });
 
@@ -1094,7 +1111,7 @@ STRICT RULES:
       const instruction = followUpInput.value.trim();
       if (!instruction || !currentBase64Jpeg || isSolving) return;
       followUpInput.value = '';
-      solveWithGemini(instruction);
+      solveWithGemini(instruction, true);
     });
 
     dismissErrorBtn.addEventListener('click', hideError);
@@ -1104,7 +1121,7 @@ STRICT RULES:
     overlaysHidden = hidden;
     overlayLayer.classList.toggle('overlays-hidden', hidden);
     toggleOverlaysBtn.classList.toggle('active-toggle', hidden);
-    toggleOverlaysText.textContent = hidden ? 'Näita märgiseid' : 'Hoia/klõpsa: peida märgised';
+    toggleOverlaysText.textContent = hidden ? 'Näita märgiseid' : 'Peida märgised';
   }
 
   async function copyTextToClipboard(text, btnEl) {
@@ -1119,17 +1136,23 @@ STRICT RULES:
         if (span) span.textContent = prev;
       }, 1200);
     } catch {
-      // Ignoreeri viga
+      // Ignoreeri
     }
   }
 
   // =========================================================================
-  // 13. VAADETE VAHETAMINE JA ABIFUNKTSIOONID
+  // 12. VAADETE VAHETAMINE JA ABIFUNKTSIOONID
   // =========================================================================
   function showView(viewName) {
     launchpadView.classList.toggle('hidden', viewName !== 'launchpad');
     streamView.classList.toggle('hidden', viewName !== 'stream');
     resultView.classList.toggle('hidden', viewName !== 'result');
+
+    // Näita mobiilset vahekaartide vahetajat ainult siis, kui tulemuste vaade on aktiivne
+    mobileTabSwitcher.classList.toggle('hidden', viewName !== 'result');
+    if (viewName !== 'result') {
+      mainWorkspace.classList.remove('mob-mode-image', 'mob-mode-answers');
+    }
   }
 
   function showError(title, message) {
@@ -1152,9 +1175,9 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 14. KÄIVITAMINE
+  // 13. KÄIVITAMINE
   // =========================================================================
-  initPersistence();
+  initPersistenceAndGuide();
   initCaptureListeners();
   initToolbarAndSidebarEvents();
 })();
