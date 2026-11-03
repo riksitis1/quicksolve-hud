@@ -1,14 +1,14 @@
 /**
- * QuickSolve HUD — Zero-Backend Client-Side Spatial Worksheet Solver
- * Supports unthrottled Web Worker screen-stream countdown, ImageCapture track frame grabbing,
- * clipboard paste, mobile camera capture, drag-and-drop, and 2D spatial bounding-box overlays.
+ * QuickSolve HUD — Nutikas töölehtede ja testide kiirlahendaja
+ * Toetab taustataimerit (Web Worker), Ultra HD ekraanipildi haaramist otse videorajalt (ImageCapture),
+ * lõikelaualt kleepimist (Ctrl+V), kaamerat ja 2D koordinaatidega vastuste ülekatet.
  */
 
 (() => {
   'use strict';
 
   // =========================================================================
-  // 1. CONSTANTS & EXACT SYSTEM PROMPT
+  // 1. KONSTANDID JA TÄIUSTATUD SÜSTEEMIPROMPT
   // =========================================================================
   const STORAGE_KEYS = {
     API_KEY: 'gemini_api_key',
@@ -18,9 +18,10 @@
   };
 
   const DEFAULT_MODEL = 'gemini-3.8-flash';
-  const MAX_IMAGE_EDGE = 1600;
-  const JPEG_QUALITY = 0.82;
-  const DEFAULT_TITLE = 'QuickSolve HUD — Instant Worksheet Solver';
+  // Tõstetud pildikvaliteet (kuni 2560px ja 0.95 JPEG), et väikesed sümbolid, miinusmärgid ja tekst oleksid üliteravad
+  const MAX_IMAGE_EDGE = 2560;
+  const JPEG_QUALITY = 0.95;
+  const DEFAULT_TITLE = 'QuickSolve HUD — Nutikas töölehtede lahendaja';
 
   const SYSTEM_INSTRUCTION = `You are a fast, undetectable worksheet solver. Analyze the screen capture, locate every unanswered question, empty input box, fill-in-the-blank line, or multiple-choice question, and return the exact answers mapped to their 2D spatial coordinates.
 
@@ -32,8 +33,16 @@ STRICT RULES:
    - For open-ended or full-sentence questions, write like a normal 8th-grade student. Use simple, everyday vocabulary and straightforward sentence structure.
    - NEVER use robotic AI phrases ("Furthermore", "In conclusion", "It is important to note", "delve", "testament", "crucial").
    - Do not over-explain. If a 4-word phrase answers the question completely, use 4 words instead of a paragraph.
-4. MULTIPLE CHOICE / CHECKBOXES: Place \`box_2d\` directly over the correct choice's checkbox, radio button, or letter, and set \`answer\` to "✓ [Option Letter/Text]".
-5. SPATIAL PRECISION: \`box_2d\` must be [ymin, xmin, ymax, xmax] on a 0-1000 scale pinpointing the exact blank spot where the student needs to write or click.`;
+4. ESTONIAN GRAMMAR, ORTHOGRAPHY & SCIENCE PRECISION:
+   - Compound words (kokku- ja lahkukirjutamine): Verify carefully whether words are written together or apart (e.g., "vanaema" and "kolmsada" are written together, while language names like "eesti keel" are written apart).
+   - Word corrections (võõrsõnad / õigekiri): Keep the exact same grammatical form, case, and part of speech as the word in the sentence (e.g., if correcting the adjective "effektne", output "efektne", NOT the noun "efekt").
+   - Sentence parts (lauseliikmed): When asked for the subject (alus - kes/mis?), return strictly the subject noun itself (e.g., "musträstas") without adjective modifiers (täiend, such as "väike").
+   - Biology precision: Plant roots absorb water and mineral salts (vett ja mineraalaineid) and anchor the plant into the soil (kinnitavad taime mulda).
+5. MULTIPLE CHOICE / CHECKBOXES: Place \`box_2d\` directly over the correct choice's checkbox, radio button, or letter, and set \`answer\` to "✓ [Option Letter/Text]".
+6. SPATIAL PRECISION & UNIQUE IDS:
+   - \`id\` must be strictly sequential unique integers (1, 2, 3, 4...) for every single blank or input field, even when one question has two blanks.
+   - \`question_label\` must be a short 2–4 word label (e.g., "Ül 1", "Ül 6 (1. lünk)", "Ül 9a") — never copy the entire question sentence into \`question_label\`.
+   - \`box_2d\` must be [ymin, xmin, ymax, xmax] on a 0-1000 scale pinpointing the exact blank spot where the student needs to write or click.`;
 
   const RESPONSE_SCHEMA = {
     type: 'ARRAY',
@@ -53,7 +62,7 @@ STRICT RULES:
   };
 
   // =========================================================================
-  // 2. DOM ELEMENTS
+  // 2. DOM ELEMENDID
   // =========================================================================
   const apiKeyInput = document.getElementById('apiKeyInput');
   const toggleKeyVisibilityBtn = document.getElementById('toggleKeyVisibilityBtn');
@@ -62,14 +71,13 @@ STRICT RULES:
   const statusBadge = document.getElementById('statusBadge');
   const statusText = document.getElementById('statusText');
 
-  // Stage & Views
-  const dropZone = document.getElementById('dropZone');
+  // Vaated
   const dragOverlay = document.getElementById('dragOverlay');
   const launchpadView = document.getElementById('launchpadView');
   const streamView = document.getElementById('streamView');
   const resultView = document.getElementById('resultView');
 
-  // Capture Launchpad Controls
+  // Allika valiku nupud
   const startStreamBtn = document.getElementById('startStreamBtn');
   const pasteCardBtn = document.getElementById('pasteCardBtn');
   const cameraBtn = document.getElementById('cameraBtn');
@@ -77,7 +85,7 @@ STRICT RULES:
   const cameraInput = document.getElementById('cameraInput');
   const fileInput = document.getElementById('fileInput');
 
-  // Stream & Cooldown HUD Controls
+  // Ekraanivoo ja taimeri HUD nupud
   const liveVideo = document.getElementById('liveVideo');
   const countdownOverlay = document.getElementById('countdownOverlay');
   const countdownNumber = document.getElementById('countdownNumber');
@@ -86,7 +94,7 @@ STRICT RULES:
   const delayedCaptureBtn = document.getElementById('delayedCaptureBtn');
   const stopStreamBtn = document.getElementById('stopStreamBtn');
 
-  // Result View Controls
+  // Tulemuste vaate nupud
   const backToStreamBtn = document.getElementById('backToStreamBtn');
   const recaptureStreamBtn = document.getElementById('recaptureStreamBtn');
   const newCaptureBtn = document.getElementById('newCaptureBtn');
@@ -99,7 +107,7 @@ STRICT RULES:
   const solvingScanner = document.getElementById('solvingScanner');
   const scannerStatusMsg = document.getElementById('scannerStatusMsg');
 
-  // Sidebar Elements
+  // Külgpaneeli elemendid
   const answerCountBadge = document.getElementById('answerCountBadge');
   const copyAllBtn = document.getElementById('copyAllBtn');
   const copyAllText = document.getElementById('copyAllText');
@@ -113,7 +121,7 @@ STRICT RULES:
   const followUpSubmitBtn = document.getElementById('followUpSubmitBtn');
 
   // =========================================================================
-  // 3. APPLICATION STATE
+  // 3. RAKENDUSE OLEK
   // =========================================================================
   let mediaStream = null;
   let countdownWorker = null;
@@ -129,7 +137,7 @@ STRICT RULES:
   let activeAbortController = null;
 
   // =========================================================================
-  // 4. INITIALIZATION & LOCALSTORAGE PERSISTENCE
+  // 4. SEADISTUSTE SALVESTAMINE (LOCALSTORAGE)
   // =========================================================================
   function initPersistence() {
     const savedKey = localStorage.getItem(STORAGE_KEYS.API_KEY) || '';
@@ -207,16 +215,16 @@ STRICT RULES:
     if (isSolving) return;
     const hasKey = apiKeyInput.value.trim().length > 10;
     if (!hasKey) {
-      setStatus('warn', 'No API Key');
+      setStatus('warn', 'API võti puudub');
     } else if (isStreamActive()) {
-      setStatus('ready', 'Stream Ready');
+      setStatus('ready', 'Otsepilt valmis');
     } else {
-      setStatus('ready', 'API Ready');
+      setStatus('ready', 'Valmis');
     }
   }
 
   // =========================================================================
-  // 5. SUBTLE WEB AUDIO API CUES (ANTI-SLEEP + TACTILE FEEDBACK)
+  // 5. VAIKNE HELISIGNAAL (WEB AUDIO API)
   // =========================================================================
   function ensureAudioContext() {
     if (!audioCueCheckbox.checked) return null;
@@ -236,9 +244,6 @@ STRICT RULES:
     }
   }
 
-  /**
-   * Plays a quiet 60ms low-frequency click when the snapshot fires.
-   */
   function playCaptureClick() {
     const ctx = ensureAudioContext();
     if (!ctx) return;
@@ -260,13 +265,10 @@ STRICT RULES:
       osc.start(now);
       osc.stop(now + 0.06);
     } catch {
-      // Ignore audio errors if blocked
+      // Ignoreeri helivigu
     }
   }
 
-  /**
-   * Plays a soft double-click when answers finish loading.
-   */
   function playCompletionDoubleClick() {
     const ctx = ensureAudioContext();
     if (!ctx) return;
@@ -290,12 +292,12 @@ STRICT RULES:
         osc.stop(start + 0.055);
       });
     } catch {
-      // Ignore audio errors
+      // Ignoreeri helivigu
     }
   }
 
   // =========================================================================
-  // 6. INLINE WEB WORKER (UNTHROTTLED BACKGROUND COOLDOWN TIMER)
+  // 6. TAUSTATAIMER (WEB WORKER — EI AEGLUSTU TAUSTAKAARDIL)
   // =========================================================================
   function createCountdownWorker() {
     const workerCode = `
@@ -355,7 +357,7 @@ STRICT RULES:
 
   function startDelayedCapture() {
     if (!isStreamActive()) {
-      showError('Stream Not Active', 'Start a screen stream before triggering delayed capture.');
+      showError('Ekraanivoog pole aktiivne', 'Alusta esmalt ekraani jagamist.');
       return;
     }
 
@@ -365,7 +367,6 @@ STRICT RULES:
     cooldownInput.value = String(seconds);
     localStorage.setItem(STORAGE_KEYS.COOLDOWN, String(seconds));
 
-    // Make sure stream view is visible so user sees the HUD countdown if they are on the result view
     showView('stream');
 
     if (!countdownWorker) {
@@ -386,7 +387,7 @@ STRICT RULES:
   function handleCountdownTick(remaining, isInitial) {
     countdownOverlay.classList.remove('hidden');
     countdownNumber.textContent = String(remaining);
-    setStatus('busy', `⏳ ${remaining}s — Switch to Test!`);
+    setStatus('busy', `⏳ ${remaining}s — Ava test!`);
 
     if (isInitial) {
       document.title = `⏳ ${remaining}s - Switch to Test!`;
@@ -412,7 +413,7 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 7. SCREEN STREAMING & CRITICAL DIRECT TRACK FRAME GRABBING
+  // 7. ULTRA HD EKRAANIJAGAMINE JA OTSEKAADRI HAARAMINE
   // =========================================================================
   function isStreamActive() {
     if (!mediaStream) return false;
@@ -427,10 +428,14 @@ STRICT RULES:
         stopScreenStream(false);
       }
 
+      // Küsi brauserilt maksimaalset (kuni 4K / 1440p / 1080p) teravust, et väike tekst oleks selge
       mediaStream = await navigator.mediaDevices.getDisplayMedia({
         video: {
           displaySurface: 'monitor',
           cursor: 'never',
+          width: { ideal: 2560, max: 3840 },
+          height: { ideal: 1440, max: 2160 },
+          frameRate: { ideal: 30 },
         },
         audio: false,
       });
@@ -450,7 +455,7 @@ STRICT RULES:
       updateConnectionBadge();
     } catch (err) {
       if (err && err.name !== 'NotAllowedError') {
-        showError('Screen Stream Failed', err.message || 'Unable to start screen capture.');
+        showError('Ekraani jagamine ebaõnnestus', err.message || 'Ekraani jagamist ei õnnestunud käivitada.');
       }
     }
   }
@@ -479,13 +484,9 @@ STRICT RULES:
     recaptureStreamBtn.classList.toggle('hidden', !active);
   }
 
-  /**
-   * Extracts a live frame directly from the video track using ImageCapture.grabFrame()
-   * (with fallback to drawing liveVideo onto canvas) so background tabs never grab a stale frame.
-   */
   async function grabStreamFrameAndSolve() {
     if (!isStreamActive()) {
-      showError('Stream Ended', 'The screen stream was stopped before capture completed.');
+      showError('Ekraanivoog lõppes', 'Ekraani jagamine peatati enne pildi tegemist.');
       return;
     }
 
@@ -503,7 +504,6 @@ STRICT RULES:
         sourceHeight = bitmap.height;
       }
     } catch {
-      // Fallback to <video> element if ImageCapture fails on a specific browser
       frameSource = null;
     }
 
@@ -517,7 +517,7 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 8. IMAGE PRE-PROCESSING (MAX 1600PX, JPEG 0.82)
+  // 8. PILDI EELTÖÖTLUS (KUNI 2560PX, JPEG 0.95 TERAVUS)
   // =========================================================================
   function processDrawableAndSolve(drawable, rawWidth, rawHeight) {
     hideError();
@@ -536,7 +536,7 @@ STRICT RULES:
     canvas.width = targetWidth;
     canvas.height = targetHeight;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(drawable, 0, 0, targetWidth, targetHeight);
@@ -545,7 +545,7 @@ STRICT RULES:
       try {
         drawable.close();
       } catch {
-        // Ignore ImageBitmap close errors
+        // Ignoreeri sulgemise viga
       }
     }
 
@@ -555,21 +555,19 @@ STRICT RULES:
     currentDataUrl = dataUrl;
     currentBase64Jpeg = base64Data;
 
-    // Display inside aspect-ratio locked wrapper
     capturedImage.src = dataUrl;
     imageAspectWrapper.style.aspectRatio = `${targetWidth} / ${targetHeight}`;
 
     showView('result');
     updateStreamButtonsVisibility();
 
-    // Clear previous overlays & trigger Gemini solver
     clearOverlayAndCardsForNewSolve();
     solveWithGemini();
   }
 
   function loadFileOrBlobAndSolve(file) {
     if (!file || !file.type.startsWith('image/')) {
-      showError('Unsupported File', 'Please provide a valid .png, .jpg, or .webp image.');
+      showError('Sobimatu failitüüp', 'Palun vali .png, .jpg või .webp pildifail.');
       return;
     }
 
@@ -583,23 +581,21 @@ STRICT RULES:
 
     img.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      showError('Image Load Error', 'Could not decode the selected image file.');
+      showError('Pildi laadimise viga', 'Valitud pildifaili ei õnnestunud avada.');
     };
 
     img.src = objectUrl;
   }
 
   // =========================================================================
-  // 9. CLIPBOARD PASTE, CAMERA, & DRAG-AND-DROP LISTENERS
+  // 9. LÕIKELAUD (CTRL+V), KAAMERA JA FAILIDE KUULAJAD
   // =========================================================================
   function initCaptureListeners() {
-    // 1. Screen Stream
     startStreamBtn.addEventListener('click', startScreenStream);
     delayedCaptureBtn.addEventListener('click', startDelayedCapture);
     cancelCountdownBtn.addEventListener('click', cancelDelayedCapture);
     stopStreamBtn.addEventListener('click', () => stopScreenStream(true));
 
-    // Result Toolbar navigation
     backToStreamBtn.addEventListener('click', () => {
       if (isStreamActive()) {
         showView('stream');
@@ -622,7 +618,7 @@ STRICT RULES:
       }
     });
 
-    // 2. Global Clipboard Paste (Ctrl+V)
+    // Globaalne Ctrl+V kleepimine
     window.addEventListener('paste', (e) => {
       const clipboardItems = e.clipboardData && e.clipboardData.items;
       if (!clipboardItems) return;
@@ -640,7 +636,6 @@ STRICT RULES:
       }
     });
 
-    // Clicking the Paste Card attempts Async Clipboard API or prompts Ctrl+V
     pasteCardBtn.addEventListener('click', async () => {
       ensureAudioContext();
       if (navigator.clipboard && typeof navigator.clipboard.read === 'function') {
@@ -654,16 +649,15 @@ STRICT RULES:
               return;
             }
           }
-          showError('No Image in Clipboard', 'Copy a screenshot first, then press Ctrl+V or click here.');
+          showError('Lõikelaual pole pilti', 'Kopeeri esmalt ekraanipilt (nt PrtScn klahviga) ja vajuta seejärel Ctrl+V.');
         } catch {
-          showError('Press Ctrl+V', 'Press Ctrl+V (or Cmd+V on Mac) anywhere on the page to paste your screenshot.');
+          showError('Vajuta Ctrl+V', 'Vajuta lehel olles klaviatuuril Ctrl+V, et kleepida ekraanipilt.');
         }
       } else {
-        showError('Press Ctrl+V', 'Press Ctrl+V (or Cmd+V on Mac) anywhere on the page to paste your screenshot.');
+        showError('Vajuta Ctrl+V', 'Vajuta lehel olles klaviatuuril Ctrl+V, et kleepida ekraanipilt.');
       }
     });
 
-    // 3. Camera Snapshot
     cameraBtn.addEventListener('click', () => {
       ensureAudioContext();
       cameraInput.value = '';
@@ -676,7 +670,6 @@ STRICT RULES:
       }
     });
 
-    // 4. File Upload & Drag-and-Drop
     uploadBtn.addEventListener('click', () => {
       ensureAudioContext();
       fileInput.value = '';
@@ -725,7 +718,7 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 10. GEMINI REST API SOLVER & FOLLOW-UP CORRECTIONS
+  // 10. GEMINI REST API PÄRING JA JÄRELKÜSIMUSED
   // =========================================================================
   async function solveWithGemini(followUpInstruction = '') {
     if (!currentBase64Jpeg) return;
@@ -733,8 +726,8 @@ STRICT RULES:
     const apiKey = apiKeyInput.value.trim();
     if (!apiKey) {
       document.title = DEFAULT_TITLE;
-      setStatus('warn', 'Missing API Key');
-      showError('Gemini API Key Required', 'Paste your Gemini API Key in the top bar to solve this worksheet.');
+      setStatus('warn', 'API võti puudub');
+      showError('Gemini API võti on vajalik', 'Sisesta ülemisele ribale oma Gemini API võti töölehe lahendamiseks.');
       apiKeyInput.focus();
       return;
     }
@@ -749,17 +742,17 @@ STRICT RULES:
     isSolving = true;
     hideError();
     document.title = '📸 Solving...';
-    setStatus('busy', '📸 Solving...');
+    setStatus('busy', '📸 Lahendan...');
     solvingScanner.classList.remove('hidden');
     scannerStatusMsg.textContent = followUpInstruction
-      ? `Updating answers with ${model}...`
-      : `📸 Solving worksheet with ${model}...`;
+      ? `Uuendan vastuseid mudeliga ${model}...`
+      : `📸 Lahendan töölehte mudeliga ${model}...`;
 
     followUpInput.disabled = true;
     followUpSubmitBtn.disabled = true;
 
     let userPromptText =
-      'Analyze this worksheet image and return the JSON array of all answers with their exact 2D bounding boxes [ymin, xmin, ymax, xmax] on a 0-1000 scale.';
+      'Analyze this worksheet image carefully and return the JSON array of all answers with their exact 2D bounding boxes [ymin, xmin, ymax, xmax] on a 0-1000 scale. Ensure every single blank has a unique sequential id (1, 2, 3...) and a short 2-4 word question_label.';
 
     if (followUpInstruction && currentAnswers.length > 0) {
       userPromptText = `Here is the current JSON answer key for this worksheet:\n${JSON.stringify(
@@ -792,7 +785,7 @@ STRICT RULES:
         },
       ],
       generationConfig: {
-        temperature: 0.25,
+        temperature: 0.2,
         responseMimeType: 'application/json',
         responseSchema: RESPONSE_SCHEMA,
       },
@@ -816,7 +809,7 @@ STRICT RULES:
             errDetail = errJson.error.message;
           }
         } catch {
-          // Ignore JSON parse error on error response
+          // Ignoreeri JSON viga
         }
         throw new Error(errDetail);
       }
@@ -829,15 +822,15 @@ STRICT RULES:
       renderSpatialOverlaysAndCards(parsedItems);
 
       document.title = `✅ Ready! (${parsedItems.length} Answers)`;
-      setStatus('ready', `✅ Solved (${parsedItems.length})`);
+      setStatus('ready', `✅ Valmis (${parsedItems.length})`);
       playCompletionDoubleClick();
     } catch (err) {
       if (err && err.name === 'AbortError') return;
-      document.title = '⚠️ Solver Error';
-      setStatus('error', 'Solver Error');
+      document.title = '⚠️ Viga lahendamisel';
+      setStatus('error', 'Viga');
       showError(
-        `API Error (${model})`,
-        err.message || 'Failed to reach Gemini API. Check your API key or try switching models in the top bar.'
+        `API viga (${model})`,
+        err.message || 'Ühendus Gemini API-ga ebaõnnestus. Kontrolli API võtit või proovi teist mudelit.'
       );
     } finally {
       isSolving = false;
@@ -851,15 +844,15 @@ STRICT RULES:
   function extractCandidateText(apiResponse) {
     const candidates = apiResponse && apiResponse.candidates;
     if (!Array.isArray(candidates) || candidates.length === 0) {
-      throw new Error('No response candidates returned by Gemini. The image might have been blocked or empty.');
+      throw new Error('Mudel ei tagastanud ühtegi vastust.');
     }
     const parts = candidates[0]?.content?.parts;
     if (!Array.isArray(parts) || parts.length === 0) {
-      throw new Error('Model returned an empty response payload.');
+      throw new Error('Mudeli vastus oli tühi.');
     }
     const textPart = parts.find((p) => typeof p.text === 'string');
     if (!textPart) {
-      throw new Error('Model response did not contain JSON text.');
+      throw new Error('Mudeli vastus ei sisaldanud JSON teksti.');
     }
     return textPart.text;
   }
@@ -874,36 +867,41 @@ STRICT RULES:
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      throw new Error('Failed to parse JSON array from model output.');
+      throw new Error('Mudeli JSON vastuse lugemine ebaõnnestus.');
     }
 
     if (!Array.isArray(parsed)) {
-      throw new Error('Model output was not a JSON array.');
+      throw new Error('Mudeli väljund ei olnud JSON massiiv.');
     }
 
     return parsed.map((item, idx) => {
-      const id = typeof item.id === 'number' ? item.id : idx + 1;
+      // Tagame alati unikaalse järjestikuse ID (1, 2, 3... N), et mitme lüngaga küsimused ei saaks topelt sama #ID-d
+      const uniqueId = idx + 1;
       const box = Array.isArray(item.box_2d) && item.box_2d.length === 4 ? item.box_2d : [100, 100, 140, 260];
 
       let [ymin, xmin, ymax, xmax] = box.map((n) => Math.max(0, Math.min(1000, Number(n) || 0)));
       if (ymax < ymin) [ymin, ymax] = [ymax, ymin];
       if (xmax < xmin) [xmin, xmax] = [xmax, xmin];
 
-      // Ensure minimum visible box dimension on 0-1000 scale
       if (ymax - ymin < 16) ymax = Math.min(1000, ymin + 18);
       if (xmax - xmin < 24) xmax = Math.min(1000, xmin + 28);
 
+      let label = String(item.question_label || `Ül ${uniqueId}`).trim();
+      if (label.length > 34) {
+        label = `${label.slice(0, 32)}…`;
+      }
+
       return {
-        id,
+        id: uniqueId,
         box_2d: [ymin, xmin, ymax, xmax],
-        question_label: String(item.question_label || `Q${id}`).trim(),
+        question_label: label,
         answer: String(item.answer ?? '').trim(),
       };
     });
   }
 
   // =========================================================================
-  // 11. SPATIAL OVERLAY RENDERING & SYNCED SIDEBAR CARDS
+  // 11. 2D MÄRGISTE JA KÜLGPANEELI KAARTIDE RENDERDAMINE
   // =========================================================================
   function clearOverlayAndCardsForNewSolve() {
     overlayLayer.innerHTML = '';
@@ -915,8 +913,8 @@ STRICT RULES:
         <div class="empty-icon">
           <span class="spinner"></span>
         </div>
-        <p class="empty-title">Analyzing worksheet...</p>
-        <p class="empty-desc">Locating blank inputs and computing spatial coordinates.</p>
+        <p class="empty-title">Analüüsin töölehte...</p>
+        <p class="empty-desc">Tuvastan lünki ja arvutan vastuste täpseid asukohti.</p>
       </div>
     `;
   }
@@ -942,8 +940,8 @@ STRICT RULES:
     if (items.length === 0) {
       answersList.innerHTML = `
         <div class="empty-answers">
-          <p class="empty-title">No unanswered questions detected</p>
-          <p class="empty-desc">Use the follow-up bar below to specify which question you want solved.</p>
+          <p class="empty-title">Vastamata küsimusi ei leitud</p>
+          <p class="empty-desc">Kasuta alumist parandusriba, et täpsustada, millist ülesannet soovid lahendada.</p>
         </div>
       `;
       return;
@@ -952,13 +950,12 @@ STRICT RULES:
     items.forEach((item) => {
       const [ymin, xmin, ymax, xmax] = item.box_2d;
 
-      // Exact percentage mapping from 0-1000 scale
       const leftPct = xmin / 10;
       const topPct = ymin / 10;
       const widthPct = (xmax - xmin) / 10;
       const heightPct = (ymax - ymin) / 10;
 
-      // 1. Create Spatial Overlay Box
+      // 1. Loo 2D märgis pildile
       const boxEl = document.createElement('div');
       boxEl.className = 'spatial-box';
       boxEl.dataset.id = String(item.id);
@@ -967,9 +964,6 @@ STRICT RULES:
       boxEl.style.width = `${widthPct}%`;
       boxEl.style.height = `${heightPct}%`;
 
-      if (ymin < 75) {
-        boxEl.classList.add('pill-bottom');
-      }
       if (xmin > 720) {
         boxEl.classList.add('pill-right');
       }
@@ -989,7 +983,7 @@ STRICT RULES:
       pillEl.appendChild(pillTextEl);
       boxEl.appendChild(pillEl);
 
-      // 2. Create Synced Sidebar Answer Card
+      // 2. Loo sünkroonitud vastuse kaart külgpaneelile
       const cardEl = document.createElement('div');
       cardEl.className = 'answer-card';
       cardEl.dataset.id = String(item.id);
@@ -1000,8 +994,8 @@ STRICT RULES:
             <span class="answer-id-pill">#${escapeHtml(String(item.id))}</span>
             <span class="answer-label">${escapeHtml(item.question_label)}</span>
           </div>
-          <button type="button" class="copy-card-btn" title="Copy answer">
-            <span>Copy</span>
+          <button type="button" class="copy-card-btn" title="Kopeeri vastus">
+            <span>Kopeeri</span>
           </button>
         </div>
         <div class="answer-value">${escapeHtml(item.answer)}</div>
@@ -1013,7 +1007,7 @@ STRICT RULES:
         copyTextToClipboard(item.answer, copyBtn);
       });
 
-      // Bidirectional Highlighting & Click Interactions
+      // Kahesuunaline esiletõstmine pildi ja külgpaneeli vahel
       boxEl.addEventListener('mouseenter', () => setItemHighlight(item.id, true));
       boxEl.addEventListener('mouseleave', () => setItemHighlight(item.id, false));
       boxEl.addEventListener('click', (e) => {
@@ -1047,10 +1041,9 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 12. OVERLAY VISIBILITY TOGGLE (HOLD OR CLICK) & COPY UTILITIES
+  // 12. MÄRGISTE PEITMINE (HOIA VÕI KLÕPSA) JA KOPEERIMINE
   // =========================================================================
   function initToolbarAndSidebarEvents() {
-    // Support both Press-and-Hold peek AND single-click toggle on "Hold/Click to Hide Overlays"
     toggleOverlaysBtn.addEventListener('pointerdown', () => {
       isHoldingHide = false;
       holdHideTimer = setTimeout(() => {
@@ -1080,7 +1073,6 @@ STRICT RULES:
       }
     });
 
-    // Copy All button
     copyAllBtn.addEventListener('click', async () => {
       if (!currentAnswers.length) return;
       const formatted = currentAnswers
@@ -1088,16 +1080,15 @@ STRICT RULES:
         .join('\n');
       try {
         await navigator.clipboard.writeText(formatted);
-        copyAllText.textContent = 'Copied!';
+        copyAllText.textContent = 'Kopeeritud!';
         setTimeout(() => {
-          copyAllText.textContent = 'Copy All';
+          copyAllText.textContent = 'Kopeeri kõik';
         }, 1400);
       } catch {
-        // Ignore clipboard errors
+        // Ignoreeri viga
       }
     });
 
-    // Follow-Up / Correction form submission
     followUpForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const instruction = followUpInput.value.trim();
@@ -1113,27 +1104,27 @@ STRICT RULES:
     overlaysHidden = hidden;
     overlayLayer.classList.toggle('overlays-hidden', hidden);
     toggleOverlaysBtn.classList.toggle('active-toggle', hidden);
-    toggleOverlaysText.textContent = hidden ? 'Show Overlays' : 'Hold/Click to Hide Overlays';
+    toggleOverlaysText.textContent = hidden ? 'Näita märgiseid' : 'Hoia/klõpsa: peida märgised';
   }
 
   async function copyTextToClipboard(text, btnEl) {
     try {
       await navigator.clipboard.writeText(text);
       const span = btnEl.querySelector('span');
-      const prev = span ? span.textContent : 'Copy';
+      const prev = span ? span.textContent : 'Kopeeri';
       btnEl.classList.add('copied');
-      if (span) span.textContent = 'Copied!';
+      if (span) span.textContent = 'Kopeeritud!';
       setTimeout(() => {
         btnEl.classList.remove('copied');
         if (span) span.textContent = prev;
       }, 1200);
     } catch {
-      // Fallback copy
+      // Ignoreeri viga
     }
   }
 
   // =========================================================================
-  // 13. VIEW SWITCHING & ERROR HELPERS
+  // 13. VAADETE VAHETAMINE JA ABIFUNKTSIOONID
   // =========================================================================
   function showView(viewName) {
     launchpadView.classList.toggle('hidden', viewName !== 'launchpad');
@@ -1161,10 +1152,9 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 14. BOOTSTRAP
+  // 14. KÄIVITAMINE
   // =========================================================================
   initPersistence();
   initCaptureListeners();
   initToolbarAndSidebarEvents();
 })();
-

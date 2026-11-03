@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="et">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QuickSolve HUD — Instant Worksheet Solver</title>
+  <title>QuickSolve HUD — Nutikas töölehtede lahendaja</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- TOP NAVIGATION & CONFIGURATION BAR -->
+  <!-- ÜLEMINE SEADISTUSRIBA -->
   <header class="top-bar">
     <div class="brand">
       <div class="brand-logo" aria-hidden="true">
@@ -23,14 +23,14 @@
       </div>
       <div class="brand-text">
         <h1>QuickSolve <span class="badge-hud">HUD</span></h1>
-        <span class="subtitle">Zero-Backend Spatial Worksheet Solver</span>
+        <span class="subtitle">Töölehtede ja testide kiirlahendaja</span>
       </div>
     </div>
 
     <div class="config-controls">
-      <!-- API Key Input -->
+      <!-- API Võtme sisestus -->
       <div class="control-group api-key-group">
-        <label for="apiKeyInput" class="sr-only">Gemini API Key</label>
+        <label for="apiKeyInput" class="sr-only">Gemini API võti</label>
         <div class="input-with-icon">
           <svg class="input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
@@ -38,11 +38,11 @@
           <input
             type="password"
             id="apiKeyInput"
-            placeholder="Paste Gemini API Key (AIza...)"
+            placeholder="Sisesta Gemini API võti (AIza...)"
             autocomplete="off"
             spellcheck="false"
           />
-          <button type="button" id="toggleKeyVisibilityBtn" class="icon-btn" title="Show/Hide API Key" aria-label="Toggle API Key Visibility">
+          <button type="button" id="toggleKeyVisibilityBtn" class="icon-btn" title="Näita/peida API võti" aria-label="Näita või peida API võti">
             <svg id="eyeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
               <circle cx="12" cy="12" r="3"/>
@@ -51,37 +51,37 @@
         </div>
       </div>
 
-      <!-- Model Selector -->
+      <!-- Mudeli valik -->
       <div class="control-group model-group">
-        <label for="modelSelect" class="sr-only">Gemini Model</label>
-        <select id="modelSelect" title="Select Gemini Model">
-          <option value="gemini-3.8-flash" selected>gemini-3.8-flash (Default)</option>
-          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Fastest)</option>
-          <option value="gemini-4-argon">gemini-4-argon (Deep Math/Science)</option>
-          <option value="gemini-2.5-flash">gemini-2.5-flash (Compatible)</option>
+        <label for="modelSelect" class="sr-only">Gemini mudel</label>
+        <select id="modelSelect" title="Vali Gemini mudel">
+          <option value="gemini-3.8-flash" selected>gemini-3.8-flash (Vaikimisi / Täpne)</option>
+          <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite (Kiireim)</option>
+          <option value="gemini-4-argon">gemini-4-argon (Sügav Reaal/Teadus)</option>
+          <option value="gemini-2.5-flash">gemini-2.5-flash (Stabiilne)</option>
         </select>
       </div>
 
-      <!-- Subtle Audio Cue Toggle -->
-      <label class="audio-toggle" title="Plays a subtle 60ms low-frequency click on capture & completion, and helps prevent background tab throttling">
+      <!-- Vaikne helisignaal -->
+      <label class="audio-toggle" title="Mängib pildistamisel ja valmimisel vaikse 60ms klõpsu ning hoiab taustakaardi ärkvel">
         <input type="checkbox" id="audioCueCheckbox" checked />
         <span class="toggle-track"><span class="toggle-thumb"></span></span>
-        <span class="toggle-label">Subtle Audio Cue</span>
+        <span class="toggle-label">Helisignaal</span>
       </label>
 
-      <!-- Status Badge -->
+      <!-- Olekumärgis -->
       <div id="statusBadge" class="status-badge status-warn" role="status" aria-live="polite">
         <span class="status-dot"></span>
-        <span id="statusText">No API Key</span>
+        <span id="statusText">API võti puudub</span>
       </div>
     </div>
   </header>
 
-  <!-- MAIN SPLIT WORKSPACE -->
+  <!-- PÕHITÖÖLAUD -->
   <main class="workspace">
-    <!-- LEFT / MAIN PANEL: CAPTURE SOURCES, STREAM & INTERACTIVE OVERLAY VIEW -->
+    <!-- VASAK / PEAMINE PANEEL -->
     <section class="stage-panel" id="dropZone">
-      <!-- Drag & Drop Overlay -->
+      <!-- Lohistamise ülekate -->
       <div id="dragOverlay" class="drag-overlay hidden">
         <div class="drag-box">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#00ff88" stroke-width="2">
@@ -89,21 +89,21 @@
             <polyline points="17 8 12 3 7 8"/>
             <line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
-          <p>Drop Worksheet Screenshot to Solve Instantly</p>
+          <p>Kukuta töölehe pilt siia koheseks lahendamiseks</p>
         </div>
       </div>
 
-      <!-- STATE 1: EMPTY / SOURCE LAUNCHPAD -->
+      <!-- VAADE 1: AVAVAADE / ALLIKA VALIK -->
       <div id="launchpadView" class="launchpad-view">
         <div class="launchpad-card">
           <div class="launchpad-header">
-            <span class="pill-tag">4 Capture Modes</span>
-            <h2>Capture &amp; Solve Any Worksheet</h2>
-            <p>Stream your full screen with an unthrottled background timer, paste a screenshot, snap a photo, or drop an image file.</p>
+            <span class="pill-tag">Ultra HD Ekraadipilt • 4 Režiimi</span>
+            <h2>Jäädvusta ja lahenda tööleht</h2>
+            <p>Jaga tervet ekraani taustataimeriga (sobib ka siis, kui kooli arvutis on Snipping Tool blokeeritud), kleebi lõikelaualt, tee telefoniga foto või lae fail üles.</p>
           </div>
 
           <div class="capture-grid">
-            <!-- Method 1: Entire Screen Stream -->
+            <!-- Meetod 1: Terve ekraani otsepilt -->
             <button type="button" id="startStreamBtn" class="capture-card primary-capture">
               <div class="card-icon">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -113,14 +113,14 @@
                 </svg>
               </div>
               <div class="card-body">
-                <h3>Start Screen Stream</h3>
-                <p>Live full-screen monitor stream with background tab countdown &amp; direct track frame grab</p>
+                <h3>Alusta ekraani jagamist</h3>
+                <p>Terve ekraani Ultra HD voog koos taustataimeriga — võtab selge pildi otse aktiivsest testiaknast</p>
               </div>
-              <span class="card-action">Launch Stream &rarr;</span>
+              <span class="card-action">Käivita ekraanijagamine &rarr;</span>
             </button>
 
-            <!-- Method 2: Instant Clipboard Paste -->
-            <div class="capture-card" id="pasteCardBtn" tabindex="0" role="button" aria-label="Paste Screenshot from Clipboard">
+            <!-- Meetod 2: Kiire kleepimine -->
+            <div class="capture-card" id="pasteCardBtn" tabindex="0" role="button" aria-label="Kleebi ekraanipilt lõikelaualt">
               <div class="card-icon">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
@@ -128,12 +128,12 @@
                 </svg>
               </div>
               <div class="card-body">
-                <h3>Instant Paste <kbd>Ctrl+V</kbd></h3>
-                <p>Press <kbd>Ctrl+V</kbd> / <kbd>⌘+V</kbd> anywhere or click here to read image from clipboard</p>
+                <h3>Kleebi pilt <kbd>Ctrl+V</kbd></h3>
+                <p>Vajuta <kbd>PrtScn</kbd> ja seejärel <kbd>Ctrl+V</kbd> (või klõpsa siia), et lugeda pilt otse lõikelaualt</p>
               </div>
             </div>
 
-            <!-- Method 3: Camera Snapshot -->
+            <!-- Meetod 3: Kaamera foto -->
             <button type="button" id="cameraBtn" class="capture-card">
               <div class="card-icon">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -142,12 +142,12 @@
                 </svg>
               </div>
               <div class="card-body">
-                <h3>Take Photo</h3>
-                <p>Use mobile rear camera or webcam to photograph paper worksheets or screens</p>
+                <h3>Tee kaameraga foto</h3>
+                <p>Pildista paberist kontrolltööd või arvutiekraani telefoni tagakaamera või veebikaameraga</p>
               </div>
             </button>
 
-            <!-- Method 4: File Upload / Drag-and-Drop -->
+            <!-- Meetod 4: Faili üleslaadimine -->
             <button type="button" id="uploadBtn" class="capture-card">
               <div class="card-icon">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -157,43 +157,43 @@
                 </svg>
               </div>
               <div class="card-body">
-                <h3>Upload or Drag &amp; Drop</h3>
-                <p>Select or drag <code>.png</code>, <code>.jpg</code>, or <code>.webp</code> worksheet images anywhere</p>
+                <h3>Vali fail või lohista siia</h3>
+                <p>Lae üles või lohista <code>.png</code>, <code>.jpg</code> või <code>.webp</code> töölehe pilt</p>
               </div>
             </button>
           </div>
 
-          <!-- Hidden File Inputs -->
+          <!-- Peidetud failisisendid -->
           <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" />
           <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" class="hidden" />
         </div>
       </div>
 
-      <!-- STATE 2: LIVE SCREEN STREAM VIEW -->
+      <!-- VAADE 2: EKRAANI OTSEVOOG -->
       <div id="streamView" class="stream-view hidden">
         <div class="video-container">
           <video id="liveVideo" muted playsinline autoplay></video>
 
-          <!-- Large On-Screen Countdown Overlay -->
+          <!-- Suur taimeri ülekate -->
           <div id="countdownOverlay" class="countdown-overlay hidden">
             <div class="countdown-ring">
               <span id="countdownNumber">3</span>
             </div>
-            <p class="countdown-prompt">Switch to your test window/tab now!</p>
-            <button type="button" id="cancelCountdownBtn" class="btn-secondary btn-sm">Cancel Countdown</button>
+            <p class="countdown-prompt">Mine nüüd oma testi vahekaardile või aknasse!</p>
+            <button type="button" id="cancelCountdownBtn" class="btn-secondary btn-sm">Tühista taimer</button>
           </div>
 
-          <!-- Floating HUD Control Bar -->
-          <div class="floating-hud" aria-label="Stream HUD Controls">
+          <!-- Hõljuv HUD juhtpaneel -->
+          <div class="floating-hud" aria-label="Ekraanijagamise juhtnupud">
             <div class="hud-stream-indicator">
               <span class="live-dot"></span>
-              <span>LIVE STREAM</span>
+              <span>OTSEPILDI VOOG (HD)</span>
             </div>
 
             <div class="hud-divider"></div>
 
             <div class="hud-cooldown-group">
-              <label for="cooldownInput">Cooldown (s)</label>
+              <label for="cooldownInput">Viivitus (s)</label>
               <input
                 type="number"
                 id="cooldownInput"
@@ -201,33 +201,33 @@
                 max="15"
                 step="1"
                 value="3"
-                title="Capture delay in seconds (0 to 15)"
+                title="Pildistamise viivitus sekundites (0 kuni 15)"
               />
             </div>
 
-            <!-- Red Circle Button (Delayed Capture & Solve) -->
+            <!-- Punane salvestusnupp -->
             <button
               type="button"
               id="delayedCaptureBtn"
               class="hud-capture-btn"
-              title="Start Cooldown &amp; Capture Active Screen"
-              aria-label="Delayed Capture and Solve"
+              title="Käivita taimer ja pildista aktiivset ekraani"
+              aria-label="Viivitusega pildistamine ja lahendamine"
             >
               <span class="red-circle-outer">
                 <span class="red-circle-inner"></span>
               </span>
-              <span class="capture-btn-text">Capture &amp; Solve</span>
+              <span class="capture-btn-text">Pildista ja lahenda</span>
             </button>
 
             <div class="hud-divider"></div>
 
-            <!-- X Button (Stop Stream) -->
+            <!-- X Nupp (Lõpeta voog) -->
             <button
               type="button"
               id="stopStreamBtn"
               class="hud-close-btn"
-              title="Stop Stream &amp; Reset Workspace"
-              aria-label="Stop Screen Stream"
+              title="Lõpeta ekraani jagamine"
+              aria-label="Lõpeta ekraani jagamine"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="18" y1="6" x2="6" y2="18"/>
@@ -238,9 +238,9 @@
         </div>
       </div>
 
-      <!-- STATE 3: CAPTURED SCREENSHOT & INTERACTIVE OVERLAY VIEW -->
+      <!-- VAADE 3: JÄÄDVUSTATUD EKRAANIPILT JA VASTUSTE ÜLEKATE -->
       <div id="resultView" class="result-view hidden">
-        <!-- Result Toolbar -->
+        <!-- Tööriistariba -->
         <div class="result-toolbar">
           <div class="toolbar-left">
             <button type="button" id="backToStreamBtn" class="btn-toolbar hidden">
@@ -248,18 +248,18 @@
                 <polygon points="23 7 16 12 23 17 23 7"/>
                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
               </svg>
-              <span>Back to Live Stream</span>
+              <span>Tagasi otsepildile</span>
             </button>
-            <button type="button" id="recaptureStreamBtn" class="btn-toolbar btn-accent hidden" title="Start countdown and capture a new frame from the active stream">
+            <button type="button" id="recaptureStreamBtn" class="btn-toolbar btn-accent hidden" title="Käivita taimer ja tee uus pilt aktiivsest ekraanivoost">
               <span class="mini-red-dot"></span>
-              <span>Delayed Recapture</span>
+              <span>Uus pilt taimeriga</span>
             </button>
             <button type="button" id="newCaptureBtn" class="btn-toolbar">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                 <path d="M3 3v5h5"/>
               </svg>
-              <span>New Source</span>
+              <span>Uus allikas</span>
             </button>
           </div>
 
@@ -268,37 +268,37 @@
               type="button"
               id="toggleOverlaysBtn"
               class="btn-toolbar"
-              title="Click to toggle overlays, or press and hold to peek at the raw image"
+              title="Klõpsa või hoia all, et peita vastuste märgised ja vaadata puhast pilti"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
-              <span id="toggleOverlaysText">Hold/Click to Hide Overlays</span>
+              <span id="toggleOverlaysText">Hoia/klõpsa: peida märgised</span>
             </button>
 
-            <button type="button" id="retrySolveBtn" class="btn-toolbar" title="Re-run solver on this image">
+            <button type="button" id="retrySolveBtn" class="btn-toolbar" title="Lahenda see pilt uuesti valitud mudeliga">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="23 4 23 10 17 10"/>
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
               </svg>
-              <span>Re-Solve</span>
+              <span>Lahenda uuesti</span>
             </button>
           </div>
         </div>
 
-        <!-- Viewport holding the exact aspect-ratio wrapper -->
+        <!-- Pildi ja märgiste konteiner -->
         <div class="canvas-stage" id="canvasStage">
           <div id="imageAspectWrapper" class="image-aspect-wrapper">
-            <img id="capturedImage" alt="Captured worksheet" draggable="false" />
+            <img id="capturedImage" alt="Jäädvustatud tööleht" draggable="false" />
             <div id="overlayLayer" class="overlay-layer"></div>
 
-            <!-- Scanning / Solving Shimmer Overlay -->
+            <!-- Skaneerimise animatsioon -->
             <div id="solvingScanner" class="solving-scanner hidden">
               <div class="scanner-beam"></div>
               <div class="scanner-status-pill">
                 <span class="spinner"></span>
-                <span id="scannerStatusMsg">📸 Solving worksheet with Gemini...</span>
+                <span id="scannerStatusMsg">📸 Lahendan töölehte...</span>
               </div>
             </div>
           </div>
@@ -306,34 +306,34 @@
       </div>
     </section>
 
-    <!-- RIGHT / BOTTOM PANEL: SYNCED ANSWER KEY + QUICK FOLLOW-UP -->
-    <aside class="sidebar-panel" aria-label="Synced Answer Key">
+    <!-- PAREM / ALUMINE KÜLGPANEEL: SÜNKROONITUD VASTUSED + JÄRELKÜSIMUS -->
+    <aside class="sidebar-panel" aria-label="Sünkroonitud vastused">
       <div class="sidebar-header">
         <div class="sidebar-title-row">
-          <h2>Synced Answer Key</h2>
+          <h2>Sünkroonitud vastused</h2>
           <span id="answerCountBadge" class="count-badge">0</span>
         </div>
         <div class="sidebar-actions">
-          <button type="button" id="copyAllBtn" class="btn-xs" disabled title="Copy all answers to clipboard">
+          <button type="button" id="copyAllBtn" class="btn-xs" disabled title="Kopeeri kõik vastused lõikelauale">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
             </svg>
-            <span id="copyAllText">Copy All</span>
+            <span id="copyAllText">Kopeeri kõik</span>
           </button>
         </div>
       </div>
 
-      <!-- Error Banner -->
+      <!-- Veateade -->
       <div id="errorBanner" class="error-banner hidden" role="alert">
         <div class="error-content">
-          <strong id="errorTitle">Solver Error</strong>
+          <strong id="errorTitle">Viga</strong>
           <p id="errorMessage"></p>
         </div>
-        <button type="button" id="dismissErrorBtn" class="icon-btn" aria-label="Dismiss error">&times;</button>
+        <button type="button" id="dismissErrorBtn" class="icon-btn" aria-label="Sulge veateade">&times;</button>
       </div>
 
-      <!-- Answer Cards List -->
+      <!-- Vastuste kaardid -->
       <div id="answersList" class="answers-list">
         <div class="empty-answers">
           <div class="empty-icon">
@@ -343,23 +343,23 @@
               <line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
           </div>
-          <p class="empty-title">No worksheet analyzed yet</p>
-          <p class="empty-desc">Capture a screen stream, press <kbd>Ctrl+V</kbd>, or upload an image to map spatial answers here.</p>
+          <p class="empty-title">Ühtegi töölehte pole veel lahendatud</p>
+          <p class="empty-desc">Jaga ekraani, vajuta <kbd>Ctrl+V</kbd> või lae pilt üles, et näha täpseid vastuseid.</p>
         </div>
       </div>
 
-      <!-- Follow-up / Correction Bar -->
+      <!-- Järelküsimuse / paranduse riba -->
       <form id="followUpForm" class="followup-bar">
-        <label for="followUpInput" class="sr-only">Follow-up or Correction Instruction</label>
+        <label for="followUpInput" class="sr-only">Järelküsimus või parandus</label>
         <input
           type="text"
           id="followUpInput"
-          placeholder="Follow-up (e.g., &quot;Make #2 shorter&quot; or &quot;Re-check #4&quot;)..."
+          placeholder="Parandus (nt &quot;Tee #7 lühemaks&quot; või &quot;Kontrolli #10 uuesti&quot;)..."
           disabled
           autocomplete="off"
         />
-        <button type="submit" id="followUpSubmitBtn" class="btn-followup" disabled title="Send follow-up instruction without recapturing">
-          <span>Update</span>
+        <button type="submit" id="followUpSubmitBtn" class="btn-followup" disabled title="Saada täpsustus ilma uut pilti tegemata">
+          <span>Uuenda</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
             <line x1="22" y1="2" x2="11" y2="13"/>
             <polygon points="22 2 15 22 11 13 2 9 22 2"/>
@@ -372,4 +372,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-

@@ -891,49 +891,44 @@ kbd, code {
 
 .spatial-pill {
   position: absolute;
-  bottom: calc(100% + 4px);
-  left: -2px;
+  top: 50%;
+  left: 3px;
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  max-width: 240px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: rgba(7, 11, 18, 0.95);
+  max-width: 220px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(7, 11, 18, 0.94);
   border: 1.5px solid var(--neon-green);
   color: #ffffff;
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.75);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.75);
   pointer-events: auto;
-  transition: max-width 0.18s ease, background 0.15s ease;
-}
-
-/* Flip pill below box if box is near the very top edge of the image */
-.spatial-box.pill-bottom .spatial-pill {
-  bottom: auto;
-  top: calc(100% + 4px);
+  transition: max-width 0.18s ease, background 0.15s ease, transform 0.15s ease;
 }
 
 /* Shift pill right-aligned if box is near the right edge */
 .spatial-box.pill-right .spatial-pill {
   left: auto;
-  right: -2px;
+  right: 3px;
 }
 
 .spatial-pill-id {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 800;
   color: #04120b;
   background: var(--neon-green);
   padding: 0 5px;
-  border-radius: 4px;
+  border-radius: 3px;
   flex-shrink: 0;
 }
 
@@ -951,7 +946,7 @@ kbd, code {
   word-break: break-word;
   background: #05080f;
   border-color: #ffffff;
-  z-index: 40;
+  z-index: 50;
 }
 
 /* Solving Scanner Effect */
