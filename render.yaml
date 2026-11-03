@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: quicksolve-hud
+    env: static
+    buildCommand: ""
+    staticPublishPath: .
+    pullRequestPreviewsEnabled: false
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+
