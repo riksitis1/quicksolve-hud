@@ -1,52 +1,66 @@
 /**
- * QuickSolve HUD — Vaikne, säästlik ja täpne töölehtede kiirlahendaja
- * - 100% hääletu (ei mängi ühtegi heli)
- * - Vaikimisi mudel: gemini-3.8-flash
- * - Samm-sammult API võtme seadistamise juhend alguses
- * - Vahemälu (vähem API kulu) + kontrastiparandus terava teksti jaoks
- * - Mobiili- ja arvutisõbralik liides
+ * QuickSolve HUD — Nutikas töölehtede ja töövihikute lahendaja (koos loomuliku lahenduskäiguga)
+ * - Näitab nii õpilasepärast lahenduskäiku (steps) kui ka lõppvastust (answer)
+ * - Puhas kompaktne numbrivaade (#1, #2, #3) pildil + alumine kiirvaate riba (Eelmine / Järgmine)
+ * - Ühendab sama rea vahelüngad üheks selgeks punktiks ega kata töövihiku teksti kinni
+ * - Lahendab ka tabelite lahtrid ja ristkülikud (nt Ül 52 hulkliikmete tegurdamine)
+ * - Automaatne mudeli varuvariant, et ükski päring ei jääks mudeli vea taha
  */
 
 (() => {
   'use strict';
 
   // =========================================================================
-  // 1. KONSTANDID JA TÄIUSTATUD SÜSTEEMIPROMPT
+  // 1. KONSTANDID JA SÜSTEEMIPROMPT (KOOS LAHENDUSKÄIGUGA)
   // =========================================================================
   const STORAGE_KEYS = {
     API_KEY: 'gemini_api_key',
     MODEL: 'gemini_model',
-    MODEL_MIGRATED_V38: 'quicksolve_v38_default_set',
     COOLDOWN: 'quicksolve_cooldown',
     GUIDE_DISMISSED: 'quicksolve_guide_dismissed',
   };
 
-  const DEFAULT_MODEL = 'gemini-3.8-flash';
+  const DEFAULT_MODEL = 'gemini-2.5-flash';
+  const MODEL_ALIASES = {
+    'gemini-3.8-flash': 'gemini-2.5-flash',
+    'gemini-3.5-flash-lite': 'gemini-2.5-flash-lite',
+    'gemini-4-argon': 'gemini-2.5-pro',
+  };
+  const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
+
   const MAX_IMAGE_EDGE = 2400;
   const JPEG_QUALITY = 0.92;
   const DEFAULT_TITLE = 'QuickSolve HUD — Nutikas töölehtede lahendaja';
 
-  const SYSTEM_INSTRUCTION = `You are an elite, fast, undetectable worksheet solver. Analyze the image with extreme visual precision, locate every unanswered question, empty input box, fill-in-the-blank line, or multiple-choice question, verify each calculation or grammar rule internally, and return the exact final answers mapped to their 2D spatial coordinates.
+  const SYSTEM_INSTRUCTION = `You are an elite, fast, undetectable school worksheet and workbook solver. Analyze the image with extreme visual precision, locate every unanswered question, empty table cell/rectangle after an "=" sign, fill-in-the-blank line, matching box, or multiple-choice question, and return both the natural student solution steps and the final answer mapped to 2D coordinates.
 
 STRICT RULES:
-1. ZERO YAPPING: Output strictly the JSON array matching the schema. Never include explanations, steps, greetings, or markdown blocks.
-2. AUTOMATIC LANGUAGE MATCHING: Detect the exact language used on the worksheet (e.g., Estonian, English, German, Russian) and write each answer in that exact language.
-3. UNDETECTABLE 8TH-GRADE STYLE:
-   - Keep answers as short, natural, and direct as possible while still being 100% accurate.
-   - For open-ended questions, write like a smart 8th-grade student using clear, everyday school terminology.
-   - NEVER use robotic AI phrases ("Furthermore", "In conclusion", "It is important to note", "delve").
-   - If 1–5 words answer the question completely, use 1–5 words instead of a long sentence.
-4. ESTONIAN GRAMMAR, ORTHOGRAPHY & SCIENCE PRECISION:
-   - Compound words (kokku- ja lahkukirjutamine): Verify carefully whether Estonian words are written together or apart (e.g., "vanaema" and "kolmsada" are single compound words written together; language names like "eesti keel" are written apart).
-   - Word corrections (võõrsõnad / õigekiri): Keep the exact same grammatical form, case, and part of speech as the word in the sentence (e.g., if correcting the adjective "effektne", output "efektne", NOT the noun "efekt").
-   - Sentence parts (lauseliikmed): When asked for the grammatical subject (alus — kes/mis teeb?), return strictly the subject noun itself (e.g., "musträstas") without adjective modifiers (täiend, such as "väike").
-   - Biology & Science precision: Use accurate school biology terms (e.g., plant roots absorb water and mineral salts — "vee ja mineraalainete imamiseks ning taime kinnitamiseks mulda").
-   - Math precision: Double-check every sign (+ / -), percentage, and equation by substituting your answer back into the original equation.
-5. MULTIPLE CHOICE / CHECKBOXES: Place \`box_2d\` directly over the correct choice's radio button, checkbox, or letter, and set \`answer\` to "✓ [Option Letter]".
-6. SPATIAL PRECISION & UNIQUE IDS:
-   - \`id\` must be strictly sequential unique integers (1, 2, 3, 4...) for every single blank or input field.
-   - \`question_label\` must be a short 2–4 word identifier (e.g., "Ül 1", "Ül 6 (1. lünk)", "Ül 9a") — never copy the full question sentence into \`question_label\`.
-   - \`box_2d\` must be [ymin, xmin, ymax, xmax] on a 0-1000 scale pinpointing the exact blank input box, dotted line, or multiple-choice option.`;
+1. ZERO YAPPING: Output strictly the JSON array matching the schema.
+2. AUTOMATIC LANGUAGE MATCHING: Detect the exact language used on the worksheet (e.g., Estonian, English, German, Russian) and write \`question_label\`, \`steps\`, and \`answer\` in that exact language.
+3. NATURAL 8TH-GRADE STUDENT SOLUTION PROCESS (\`steps\`):
+   - Teachers check if the student actually solved the problem or just copied a bare number.
+   - In \`steps\`, write the exact intermediate calculation or reasoning steps the way a real 8th-grade student writes in their workbook (so it looks 100% authentic, like they solved it or wrote it off a smart classmate's notebook).
+   - Examples of \`steps\`:
+     * Factoring & mental math (e.g., "12·28 - 28·11 = ... = ... = ..."): \`"28 · (12 - 11) = 28 · 1 = 28 | Ristsumma: 2 + 8 = 10"\`
+     * Polynomial grouping in table boxes (e.g., "5x + 5y + 3xy + 3x² ="): \`"5(x + y) + 3x(y + x) = (x + y)(5 + 3x)"\`
+     * Expanding brackets (e.g., "(7x + 10)(1 - 3y)"): \`"(7x + 10)(1 - 3y) = 7x - 21xy + 10 - 30y"\`
+     * Linear equation ("5x - 14 = 2x + 19"): \`"5x - 2x = 19 + 14  =>  3x = 33  =>  x = 11"\`
+     * Percentage ("320 € - 15%"): \`"320 · 0,85 = 272 € (või 320 - 48 = 272 €)"\`
+     * Grammar / Biology fact: Write a brief 3–6 word school-level rule/reason (e.g., \`"Ainsuse osastav (keda? mida?)"\` or \`"Fotosüntees toimub kloroplastides"\`).
+4. DO NOT CLUTTER SAME-LINE CHAINED BLANKS:
+   - If a single numbered sub-question (like \`1) 12·28 - 28·11 = ..... = ..... = .....\` plus a \`Ristsumma\` column on the same row) has multiple chained blanks on the same row, DO NOT create 4 separate overlapping pins on that row!
+   - Instead, create ONE single item for that entire row/sub-question, place \`box_2d\` on the first blank after \`=\`, and put all the chained blank values clearly inside \`steps\` and \`answer\`!
+5. SOLVE EMPTY TABLE CELLS, RECTANGLES & MATCHING TASKS:
+   - Look carefully for large empty rectangular boxes or grid cells that contain an expression ending with \`=\` (such as factoring exercises in a 2x3 table grid). Every single cell in such a table MUST be solved!
+   - If an exercise asks to color/match boxes and then write out the remaining unmatched expressions and expand their brackets, solve all of them!
+6. ESTONIAN GRAMMAR & SCIENCE PRECISION:
+   - Compound words (kokku- ja lahkukirjutamine): "vanaema" and "kolmsada" are written together; language names like "eesti keel" are written apart.
+   - Word corrections (võõrsõnad): Keep the exact same grammatical form/part of speech as in the sentence (e.g., "effektne" -> "efektne").
+   - Sentence subject (alus): Return strictly the subject noun itself (e.g., "musträstas") without adjective modifiers ("väike").
+7. SPATIAL PRECISION & UNIQUE IDS:
+   - \`id\` must be sequential integers (1, 2, 3...).
+   - \`question_label\` must be short (e.g., "Ül 51.1", "Ül 52 (1. kast)", "Ül 52 (ava sulud 1)").
+   - \`box_2d\` must be [ymin, xmin, ymax, xmax] on a 0-1000 scale.`;
 
   const RESPONSE_SCHEMA = {
     type: 'ARRAY',
@@ -59,9 +73,10 @@ STRICT RULES:
           items: { type: 'INTEGER' },
         },
         question_label: { type: 'STRING' },
+        steps: { type: 'STRING' },
         answer: { type: 'STRING' },
       },
-      required: ['id', 'box_2d', 'question_label', 'answer'],
+      required: ['id', 'box_2d', 'question_label', 'steps', 'answer'],
     },
   };
 
@@ -75,7 +90,7 @@ STRICT RULES:
   const statusBadge = document.getElementById('statusBadge');
   const statusText = document.getElementById('statusText');
 
-  // API Võtme juhendi elemendid
+  // API Võtme juhend
   const onboardingCard = document.getElementById('onboardingCard');
   const closeGuideBtn = document.getElementById('closeGuideBtn');
   const guideApiKeyInput = document.getElementById('guideApiKeyInput');
@@ -102,7 +117,7 @@ STRICT RULES:
   const cameraInput = document.getElementById('cameraInput');
   const fileInput = document.getElementById('fileInput');
 
-  // Ekraanivoo ja taimeri HUD nupud
+  // Ekraanivoo HUD nupud
   const liveVideo = document.getElementById('liveVideo');
   const countdownOverlay = document.getElementById('countdownOverlay');
   const countdownNumber = document.getElementById('countdownNumber');
@@ -115,6 +130,8 @@ STRICT RULES:
   const backToStreamBtn = document.getElementById('backToStreamBtn');
   const recaptureStreamBtn = document.getElementById('recaptureStreamBtn');
   const newCaptureBtn = document.getElementById('newCaptureBtn');
+  const togglePinModeBtn = document.getElementById('togglePinModeBtn');
+  const togglePinModeText = document.getElementById('togglePinModeText');
   const toggleOverlaysBtn = document.getElementById('toggleOverlaysBtn');
   const toggleOverlaysText = document.getElementById('toggleOverlaysText');
   const retrySolveBtn = document.getElementById('retrySolveBtn');
@@ -123,6 +140,17 @@ STRICT RULES:
   const overlayLayer = document.getElementById('overlayLayer');
   const solvingScanner = document.getElementById('solvingScanner');
   const scannerStatusMsg = document.getElementById('scannerStatusMsg');
+
+  // Alumine valitud ülesande kiirvaade (#activePinInspector)
+  const activePinInspector = document.getElementById('activePinInspector');
+  const inspIdBadge = document.getElementById('inspIdBadge');
+  const inspQuestionLabel = document.getElementById('inspQuestionLabel');
+  const inspPrevBtn = document.getElementById('inspPrevBtn');
+  const inspNextBtn = document.getElementById('inspNextBtn');
+  const inspCloseBtn = document.getElementById('inspCloseBtn');
+  const inspStepsRow = document.getElementById('inspStepsRow');
+  const inspFinalAnswer = document.getElementById('inspFinalAnswer');
+  const inspCopyBtn = document.getElementById('inspCopyBtn');
 
   // Külgpaneeli elemendid
   const answerCountBadge = document.getElementById('answerCountBadge');
@@ -138,7 +166,7 @@ STRICT RULES:
   const followUpSubmitBtn = document.getElementById('followUpSubmitBtn');
 
   // =========================================================================
-  // 3. RAKENDUSE OLEK JA SÄÄSTLIK VAHEMÄLU
+  // 3. RAKENDUSE OLEK
   // =========================================================================
   let mediaStream = null;
   let countdownWorker = null;
@@ -148,32 +176,33 @@ STRICT RULES:
   let currentDataUrl = null;
   let currentImageSignature = '';
   let currentAnswers = [];
+  let selectedPinIndex = 0;
+  let compactPinMode = true;
   let overlaysHidden = false;
   let holdHideTimer = null;
   let isHoldingHide = false;
   let activeAbortController = null;
 
-  // Hoiab ära topelt API kulu, kui sama pilti lahendatakse sama mudeliga
   const responseCache = new Map();
 
   // =========================================================================
   // 4. SEADISTUSTE SALVESTAMINE JA API VÕTME JUHEND
   // =========================================================================
+  function resolveModelName(rawModel) {
+    if (!rawModel) return DEFAULT_MODEL;
+    return MODEL_ALIASES[rawModel] || rawModel;
+  }
+
   function initPersistenceAndGuide() {
     const savedKey = (localStorage.getItem(STORAGE_KEYS.API_KEY) || '').trim();
     apiKeyInput.value = savedKey;
     guideApiKeyInput.value = savedKey;
 
-    // Tagame, et gemini-3.8-flash on vaikimisi valitud
-    const migrated = localStorage.getItem(STORAGE_KEYS.MODEL_MIGRATED_V38);
-    if (!migrated) {
-      localStorage.setItem(STORAGE_KEYS.MODEL, DEFAULT_MODEL);
-      localStorage.setItem(STORAGE_KEYS.MODEL_MIGRATED_V38, 'true');
-    }
-
-    const savedModel = localStorage.getItem(STORAGE_KEYS.MODEL) || DEFAULT_MODEL;
-    if ([...modelSelect.options].some((o) => o.value === savedModel)) {
-      modelSelect.value = savedModel;
+    const rawSavedModel = localStorage.getItem(STORAGE_KEYS.MODEL) || DEFAULT_MODEL;
+    const resolvedModel = resolveModelName(rawSavedModel);
+    if ([...modelSelect.options].some((o) => o.value === resolvedModel)) {
+      modelSelect.value = resolvedModel;
+      localStorage.setItem(STORAGE_KEYS.MODEL, resolvedModel);
     } else {
       modelSelect.value = DEFAULT_MODEL;
       localStorage.setItem(STORAGE_KEYS.MODEL, DEFAULT_MODEL);
@@ -181,13 +210,11 @@ STRICT RULES:
 
     const savedCooldown = localStorage.getItem(STORAGE_KEYS.COOLDOWN);
     if (savedCooldown !== null) {
-      const parsed = clampCooldown(parseInt(savedCooldown, 10));
-      cooldownInput.value = String(parsed);
+      cooldownInput.value = String(clampCooldown(parseInt(savedCooldown, 10)));
     } else {
       cooldownInput.value = '3';
     }
 
-    // Kui API võti on juba olemas, peida alguse juhend automaatselt
     const hasValidKey = savedKey.length > 15;
     const guideDismissed = localStorage.getItem(STORAGE_KEYS.GUIDE_DISMISSED) === 'true';
     if (hasValidKey || guideDismissed) {
@@ -196,14 +223,12 @@ STRICT RULES:
       onboardingCard.classList.remove('hidden');
     }
 
-    // Kui mobiiltelefon ei toeta getDisplayMedia ekraanijagamist, peidame selle valiku
     if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
       startStreamBtn.classList.add('hidden');
     }
 
     updateConnectionBadge();
 
-    // Sünkrooni ülemine API võtme väli ja juhendi sisendväli
     apiKeyInput.addEventListener('input', () => {
       const trimmed = apiKeyInput.value.trim();
       guideApiKeyInput.value = trimmed;
@@ -293,7 +318,7 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 5. HÄÄLETU TAUSTATAIMER (WEB WORKER — EI MÄNGI ÜHTEGI HELI)
+  // 5. HÄÄLETU TAUSTATAIMER (WEB WORKER)
   // =========================================================================
   function createCountdownWorker() {
     const workerCode = `
@@ -506,7 +531,7 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 7. PILDI TERAVUSTAMINE JA OPTIMEERIMINE (SÄÄSTLIK + TERAV TEKST)
+  // 7. PILDI TERAVUSTAMINE JA EELTÖÖTLUS
   // =========================================================================
   function processDrawableAndSolve(drawable, rawWidth, rawHeight) {
     hideError();
@@ -528,7 +553,6 @@ STRICT RULES:
     const ctx = canvas.getContext('2d', { alpha: false });
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    // Kerge kontrasti tõstmine muudab peenikese teksti, komad ja miinusmärgid AI jaoks oluliselt selgemaks
     ctx.filter = 'contrast(1.06)';
     ctx.drawImage(drawable, 0, 0, targetWidth, targetHeight);
 
@@ -581,7 +605,7 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 8. LÕIKELAUD (CTRL+V), KAAMERA, FAILID JA MOBIILSED VAHEKAARDID
+  // 8. KUULAJAD (KAAMERA, LÕIKELAUD, FAILID, MOBIILSED VAHEKAARDID)
   // =========================================================================
   function initCaptureListeners() {
     startStreamBtn.addEventListener('click', startScreenStream);
@@ -611,11 +635,9 @@ STRICT RULES:
       }
     });
 
-    // Mobiilivaate vahekaartide vahetus
     mobTabImage.addEventListener('click', () => setMobileTab('image'));
     mobTabAnswers.addEventListener('click', () => setMobileTab('answers'));
 
-    // Globaalne Ctrl+V kleepimine
     window.addEventListener('paste', (e) => {
       const clipboardItems = e.clipboardData && e.clipboardData.items;
       if (!clipboardItems) return;
@@ -718,8 +740,40 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 9. GEMINI REST API PÄRING, VAHEMÄLU JA PARANDUSED
+  // 9. GEMINI REST API PÄRING KOOS AUTOMAATSE VARUMUDELIGA
   // =========================================================================
+  async function callGeminiModel(model, apiKey, payload, signal) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+      model
+    )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal,
+    });
+
+    if (!response.ok) {
+      let errDetail = `HTTP ${response.status}`;
+      try {
+        const errJson = await response.json();
+        if (errJson && errJson.error && errJson.error.message) {
+          errDetail = errJson.error.message;
+        }
+      } catch {
+        // Ignoreeri
+      }
+      const error = new Error(errDetail);
+      error.status = response.status;
+      throw error;
+    }
+
+    return response.json();
+  }
+
   async function solveWithGemini(followUpInstruction = '', bypassCache = false) {
     if (!currentBase64Jpeg) return;
 
@@ -732,10 +786,9 @@ STRICT RULES:
       return;
     }
 
-    const model = modelSelect.value || DEFAULT_MODEL;
-    const cacheKey = `${model}::${currentImageSignature}::${followUpInstruction}`;
+    const preferredModel = resolveModelName(modelSelect.value || DEFAULT_MODEL);
+    const cacheKey = `${preferredModel}::${currentImageSignature}::${followUpInstruction}`;
 
-    // Kui täpselt sama pilt ja mudel on juba lahendatud, võta vastus kohe mälust (säästab API limiiti!)
     if (!bypassCache && !followUpInstruction && responseCache.has(cacheKey)) {
       const cachedItems = responseCache.get(cacheKey);
       currentAnswers = cachedItems;
@@ -756,24 +809,20 @@ STRICT RULES:
     setStatus('busy', '📸 Lahendan...');
     solvingScanner.classList.remove('hidden');
     scannerStatusMsg.textContent = followUpInstruction
-      ? `Uuendan vastuseid (${model})...`
-      : `📸 Lahendan töölehte (${model})...`;
+      ? 'Uuendan lahenduskäike ja vastuseid...'
+      : '📸 Arvutan lahenduskäike ja vastuseid...';
 
     followUpInput.disabled = true;
     followUpSubmitBtn.disabled = true;
 
     let userPromptText =
-      'Solve every question on this worksheet with 100% accuracy. Return the JSON array of answers with exact [ymin, xmin, ymax, xmax] coordinates (0-1000 scale), unique sequential id (1, 2, 3...), and short 2-4 word question_label.';
+      'Solve every single exercise, table cell rectangle (like factoring grids), and question on this page. Group chained blanks on the same equation row into a single item so pins never overlap. Include natural 8th-grade student intermediate steps in `steps` and the final result in `answer`.';
 
     if (followUpInstruction && currentAnswers.length > 0) {
       userPromptText = `Current JSON answers:\n${JSON.stringify(
         currentAnswers
       )}\n\nStudent correction/request: "${followUpInstruction}"\nReturn the complete updated JSON array matching the schema.`;
     }
-
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      model
-    )}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
     const payload = {
       systemInstruction: {
@@ -802,46 +851,50 @@ STRICT RULES:
       },
     };
 
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: activeAbortController.signal,
-      });
+    // Koostame mudelite järjekorra: esmalt valitud mudel, seejärel automaatsed varumudelid
+    const modelsToTry = [preferredModel, ...FALLBACK_MODELS.filter((m) => m !== preferredModel)];
+    let lastError = null;
 
-      if (!response.ok) {
-        let errDetail = `HTTP ${response.status}`;
+    try {
+      for (const candidateModel of modelsToTry) {
         try {
-          const errJson = await response.json();
-          if (errJson && errJson.error && errJson.error.message) {
-            errDetail = errJson.error.message;
+          const data = await callGeminiModel(
+            candidateModel,
+            apiKey,
+            payload,
+            activeAbortController.signal
+          );
+          const rawText = extractCandidateText(data);
+          const parsedItems = parseAndNormalizeAnswers(rawText);
+
+          currentAnswers = parsedItems;
+          responseCache.set(cacheKey, parsedItems);
+          renderSpatialOverlaysAndCards(parsedItems);
+
+          document.title = `✅ Ready! (${parsedItems.length} Answers)`;
+          setStatus('ready', `✅ Valmis (${parsedItems.length})`);
+          lastError = null;
+          break;
+        } catch (err) {
+          if (err && err.name === 'AbortError') throw err;
+          lastError = err;
+          // Kui viga on vigases API võtmes (400 API_KEY_INVALID / 403), ära proovi teisi mudeleid
+          if (err && (String(err.message).includes('API_KEY') || err.status === 403)) {
+            break;
           }
-        } catch {
-          // Ignoreeri
         }
-        throw new Error(errDetail);
       }
 
-      const data = await response.json();
-      const rawText = extractCandidateText(data);
-      const parsedItems = parseAndNormalizeAnswers(rawText);
-
-      currentAnswers = parsedItems;
-      responseCache.set(cacheKey, parsedItems);
-      renderSpatialOverlaysAndCards(parsedItems);
-
-      document.title = `✅ Ready! (${parsedItems.length} Answers)`;
-      setStatus('ready', `✅ Valmis (${parsedItems.length})`);
+      if (lastError) {
+        throw lastError;
+      }
     } catch (err) {
       if (err && err.name === 'AbortError') return;
       document.title = '⚠️ Viga lahendamisel';
       setStatus('error', 'Viga');
       showError(
-        `API viga (${model})`,
-        err.message || 'Ühendus Gemini API-ga ebaõnnestus. Kontrolli API võtit või proovi teist mudelit.'
+        'Viga töölehe lahendamisel',
+        err.message || 'Ühendus Gemini API-ga ebaõnnestus. Kontrolli oma API võtit.'
       );
     } finally {
       isSolving = false;
@@ -893,29 +946,32 @@ STRICT RULES:
       if (ymax < ymin) [ymin, ymax] = [ymax, ymin];
       if (xmax < xmin) [xmin, xmax] = [xmax, xmin];
 
-      if (ymax - ymin < 16) ymax = Math.min(1000, ymin + 18);
-      if (xmax - xmin < 24) xmax = Math.min(1000, xmin + 28);
+      if (ymax - ymin < 18) ymax = Math.min(1000, ymin + 20);
+      if (xmax - xmin < 28) xmax = Math.min(1000, xmin + 32);
 
       let label = String(item.question_label || `Ül ${uniqueId}`).trim();
-      if (label.length > 34) {
-        label = `${label.slice(0, 32)}…`;
+      if (label.length > 36) {
+        label = `${label.slice(0, 34)}…`;
       }
 
       return {
         id: uniqueId,
         box_2d: [ymin, xmin, ymax, xmax],
         question_label: label,
+        steps: String(item.steps ?? '').trim(),
         answer: String(item.answer ?? '').trim(),
       };
     });
   }
 
   // =========================================================================
-  // 10. 2D MÄRGISTE JA KÜLGPANEELI KAARTIDE RENDERDAMINE
+  // 10. MÄRGISTE, ALUMISE KIIRVAATE JA KÜLGPANEELI RENDERDAMINE
   // =========================================================================
   function clearOverlayAndCardsForNewSolve() {
     overlayLayer.innerHTML = '';
     currentAnswers = [];
+    selectedPinIndex = 0;
+    activePinInspector.classList.add('hidden');
     answerCountBadge.textContent = '0';
     mobAnswerCount.textContent = '0';
     copyAllBtn.disabled = true;
@@ -924,8 +980,8 @@ STRICT RULES:
         <div class="empty-icon">
           <span class="spinner"></span>
         </div>
-        <p class="empty-title">Analüüsin töölehte...</p>
-        <p class="empty-desc">Tuvastan lünki ja arvutan vastuste täpseid asukohti.</p>
+        <p class="empty-title">Arvutan lahenduskäike...</p>
+        <p class="empty-desc">Koostan õpilasepäraseid vahetehteid ja vastuseid.</p>
       </div>
     `;
   }
@@ -935,7 +991,9 @@ STRICT RULES:
     currentBase64Jpeg = null;
     currentImageSignature = '';
     currentAnswers = [];
+    selectedPinIndex = 0;
     overlayLayer.innerHTML = '';
+    activePinInspector.classList.add('hidden');
     answerCountBadge.textContent = '0';
     mobAnswerCount.textContent = '0';
     copyAllBtn.disabled = true;
@@ -952,16 +1010,17 @@ STRICT RULES:
     copyAllBtn.disabled = items.length === 0;
 
     if (items.length === 0) {
+      activePinInspector.classList.add('hidden');
       answersList.innerHTML = `
         <div class="empty-answers">
-          <p class="empty-title">Vastamata küsimusi ei leitud</p>
-          <p class="empty-desc">Kasuta alumist parandusriba, et täpsustada, millist ülesannet soovid lahendada.</p>
+          <p class="empty-title">Ülesandeid ei leitud</p>
+          <p class="empty-desc">Kasuta alumist täpsustusriba, et öelda, millist ülesannet soovid lahendada.</p>
         </div>
       `;
       return;
     }
 
-    items.forEach((item) => {
+    items.forEach((item, index) => {
       const [ymin, xmin, ymax, xmax] = item.box_2d;
 
       const leftPct = xmin / 10;
@@ -978,7 +1037,7 @@ STRICT RULES:
       boxEl.style.width = `${widthPct}%`;
       boxEl.style.height = `${heightPct}%`;
 
-      if (xmin > 720) {
+      if (xmin > 750) {
         boxEl.classList.add('pill-right');
       }
 
@@ -997,10 +1056,21 @@ STRICT RULES:
       pillEl.appendChild(pillTextEl);
       boxEl.appendChild(pillEl);
 
-      // 2. Loo sünkroonitud vastuse kaart külgpaneelile
+      // 2. Loo lahenduskäigu ja vastuse kaart külgpaneelile
       const cardEl = document.createElement('div');
       cardEl.className = 'answer-card';
       cardEl.dataset.id = String(item.id);
+
+      const hasDistinctSteps =
+        item.steps &&
+        item.steps.toLowerCase() !== item.answer.toLowerCase();
+
+      const stepsHtml = hasDistinctSteps
+        ? `<div class="card-steps-box">
+             <span class="card-steps-label">✏️ Lahenduskäik (kirjuta vihikusse):</span>
+             ${escapeHtml(item.steps)}
+           </div>`
+        : '';
 
       cardEl.innerHTML = `
         <div class="answer-card-top">
@@ -1008,43 +1078,92 @@ STRICT RULES:
             <span class="answer-id-pill">#${escapeHtml(String(item.id))}</span>
             <span class="answer-label">${escapeHtml(item.question_label)}</span>
           </div>
-          <button type="button" class="copy-card-btn" title="Kopeeri vastus">
+          <button type="button" class="copy-card-btn" title="Kopeeri lahendus ja vastus">
             <span>Kopeeri</span>
           </button>
         </div>
-        <div class="answer-value">${escapeHtml(item.answer)}</div>
+        ${stepsHtml}
+        <div class="answer-value">
+          <span class="answer-value-prefix">Vastus:</span>${escapeHtml(item.answer)}
+        </div>
       `;
 
       const copyBtn = cardEl.querySelector('.copy-card-btn');
       copyBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        copyTextToClipboard(item.answer, copyBtn);
+        const textToCopy = hasDistinctSteps ? `${item.steps} => ${item.answer}` : item.answer;
+        copyTextToClipboard(textToCopy, copyBtn);
       });
 
-      // Kahesuunaline esiletõstmine pildi ja külgpaneeli vahel
+      // Märgise või kaardi puudutamine avab alumise kiirvaate ja tõstab ülesande esile
       boxEl.addEventListener('mouseenter', () => setItemHighlight(item.id, true));
-      boxEl.addEventListener('mouseleave', () => setItemHighlight(item.id, false));
+      boxEl.addEventListener('mouseleave', () => {
+        if (currentAnswers[selectedPinIndex]?.id !== item.id) {
+          setItemHighlight(item.id, false);
+        }
+      });
       boxEl.addEventListener('click', (e) => {
         e.stopPropagation();
-        boxEl.classList.toggle('is-expanded');
-        setItemHighlight(item.id, true);
-        cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        selectActivePinByIndex(index, true);
       });
 
       cardEl.addEventListener('mouseenter', () => setItemHighlight(item.id, true));
-      cardEl.addEventListener('mouseleave', () => setItemHighlight(item.id, false));
+      cardEl.addEventListener('mouseleave', () => {
+        if (currentAnswers[selectedPinIndex]?.id !== item.id) {
+          setItemHighlight(item.id, false);
+        }
+      });
       cardEl.addEventListener('click', () => {
         if (window.innerWidth <= 900) {
           setMobileTab('image');
         }
-        setItemHighlight(item.id, true);
-        boxEl.classList.toggle('is-expanded');
-        boxEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        selectActivePinByIndex(index, true);
       });
 
       overlayLayer.appendChild(boxEl);
       answersList.appendChild(cardEl);
     });
+
+    // Vali automaatselt esimene ülesanne (#1), et kasutaja näeks kohe allservas lahenduskäiku!
+    selectActivePinByIndex(0, false);
+  }
+
+  function selectActivePinByIndex(index, scrollIntoView = true) {
+    if (!currentAnswers.length) return;
+    const safeIndex = (index + currentAnswers.length) % currentAnswers.length;
+    selectedPinIndex = safeIndex;
+    const item = currentAnswers[safeIndex];
+
+    // Eemalda vana esiletõstmine ja tõsta valitud #id esile
+    overlayLayer.querySelectorAll('.spatial-box').forEach((el) => {
+      el.classList.toggle('is-highlighted', el.dataset.id === String(item.id));
+    });
+    answersList.querySelectorAll('.answer-card').forEach((el) => {
+      el.classList.toggle('is-highlighted', el.dataset.id === String(item.id));
+    });
+
+    // Uuenda alumist kiirvaate kaarti (#activePinInspector)
+    activePinInspector.classList.remove('hidden');
+    inspIdBadge.textContent = `#${item.id}`;
+    inspQuestionLabel.textContent = item.question_label;
+
+    if (item.steps && item.steps.toLowerCase() !== item.answer.toLowerCase()) {
+      inspStepsRow.classList.remove('hidden');
+      inspStepsRow.textContent = `✏️ Lahenduskäik: ${item.steps}`;
+    } else {
+      inspStepsRow.classList.add('hidden');
+      inspStepsRow.textContent = '';
+    }
+
+    inspFinalAnswer.textContent = item.answer;
+
+    if (scrollIntoView) {
+      const selector = `[data-id="${CSS.escape(String(item.id))}"]`;
+      const cardEl = answersList.querySelector(selector);
+      if (cardEl && window.innerWidth > 900) {
+        cardEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
   }
 
   function setItemHighlight(id, active) {
@@ -1058,9 +1177,40 @@ STRICT RULES:
   }
 
   // =========================================================================
-  // 11. MÄRGISTE PEITMINE (HOIA VÕI KLÕPSA) JA KOPEERIMINE
+  // 11. TÖÖRIISTARIBA NUPUD, KIIRVAATE NAVIGEERIMINE JA KOPEERIMINE
   // =========================================================================
   function initToolbarAndSidebarEvents() {
+    // Vaheta kompaktsete numbrite (#1, #2) ja täistekstiga märgiste vahel
+    togglePinModeBtn.addEventListener('click', () => {
+      compactPinMode = !compactPinMode;
+      overlayLayer.classList.toggle('compact-pins', compactPinMode);
+      togglePinModeBtn.classList.toggle('active-toggle', !compactPinMode);
+      togglePinModeText.textContent = compactPinMode
+        ? '🏷️ Näita vastuseid pildil'
+        : '🔢 Ainult numbrid (#1, #2)';
+    });
+
+    // Alumise kiirvaate Eelmine / Järgmine nupud
+    inspPrevBtn.addEventListener('click', () => {
+      selectActivePinByIndex(selectedPinIndex - 1, true);
+    });
+
+    inspNextBtn.addEventListener('click', () => {
+      selectActivePinByIndex(selectedPinIndex + 1, true);
+    });
+
+    inspCloseBtn.addEventListener('click', () => {
+      activePinInspector.classList.add('hidden');
+    });
+
+    inspCopyBtn.addEventListener('click', () => {
+      const item = currentAnswers[selectedPinIndex];
+      if (!item) return;
+      const text = item.steps ? `${item.steps} => ${item.answer}` : item.answer;
+      copyTextToClipboard(text, inspCopyBtn);
+    });
+
+    // Peida / näita kõiki märgiseid
     toggleOverlaysBtn.addEventListener('pointerdown', () => {
       isHoldingHide = false;
       holdHideTimer = setTimeout(() => {
@@ -1093,7 +1243,11 @@ STRICT RULES:
     copyAllBtn.addEventListener('click', async () => {
       if (!currentAnswers.length) return;
       const formatted = currentAnswers
-        .map((a) => `#${a.id} (${a.question_label}): ${a.answer}`)
+        .map((a) =>
+          a.steps
+            ? `#${a.id} (${a.question_label}): ${a.steps}  =>  Vastus: ${a.answer}`
+            : `#${a.id} (${a.question_label}): ${a.answer}`
+        )
         .join('\n');
       try {
         await navigator.clipboard.writeText(formatted);
@@ -1121,7 +1275,7 @@ STRICT RULES:
     overlaysHidden = hidden;
     overlayLayer.classList.toggle('overlays-hidden', hidden);
     toggleOverlaysBtn.classList.toggle('active-toggle', hidden);
-    toggleOverlaysText.textContent = hidden ? 'Näita märgiseid' : 'Peida märgised';
+    toggleOverlaysText.textContent = hidden ? '👁️ Näita märgiseid' : '👁️ Peida märgised';
   }
 
   async function copyTextToClipboard(text, btnEl) {
@@ -1148,7 +1302,6 @@ STRICT RULES:
     streamView.classList.toggle('hidden', viewName !== 'stream');
     resultView.classList.toggle('hidden', viewName !== 'result');
 
-    // Näita mobiilset vahekaartide vahetajat ainult siis, kui tulemuste vaade on aktiivne
     mobileTabSwitcher.classList.toggle('hidden', viewName !== 'result');
     if (viewName !== 'result') {
       mainWorkspace.classList.remove('mob-mode-image', 'mob-mode-answers');

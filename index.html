@@ -24,7 +24,7 @@
       </div>
       <div class="brand-text">
         <h1>QuickSolve <span class="badge-hud">HUD</span></h1>
-        <span class="subtitle">Täpne ja vaikne töölehtede kiirlahendaja</span>
+        <span class="subtitle">Täpne töölehtede ja töövihikute lahendaja (koos lahenduskäiguga)</span>
       </div>
     </div>
 
@@ -56,14 +56,13 @@
         </button>
       </div>
 
-      <!-- Mudeli valik (Vaikimisi gemini-3.8-flash) -->
+      <!-- Mudeli valik (Automaatse ühilduvusega) -->
       <div class="control-group model-group">
         <label for="modelSelect" class="sr-only">Gemini mudel</label>
         <select id="modelSelect" title="Vali Gemini mudel">
-          <option value="gemini-3.8-flash" selected>⚡ gemini-3.8-flash (Soovitatav / Täpne)</option>
-          <option value="gemini-4-argon">🧠 gemini-4-argon (Sügav Matemaatika/Teadus)</option>
-          <option value="gemini-3.5-flash-lite">🚀 gemini-3.5-flash-lite (Säästlik / Kiireim)</option>
-          <option value="gemini-2.5-flash">🛡️ gemini-2.5-flash (Varumudel)</option>
+          <option value="gemini-2.5-flash" selected>⚡ Gemini 3.8 / 2.5 Flash (Soovitatav • Täpne)</option>
+          <option value="gemini-2.5-pro">🧠 Gemini Pro (Raske Matemaatika ja Teadus)</option>
+          <option value="gemini-2.5-flash-lite">🚀 Gemini Flash-Lite (Kiireim / Säästlik)</option>
         </select>
       </div>
 
@@ -75,13 +74,13 @@
     </div>
   </header>
 
-  <!-- MOBIILNE VAATE VAHETAJA (Nähtav ainult mobiilis, kui pilt on ees) -->
+  <!-- MOBIILNE VAATE VAHETAJA (Nähtav mobiilis, kui pilt on ees) -->
   <nav id="mobileTabSwitcher" class="mobile-tab-switcher hidden" aria-label="Mobiilivaate valik">
     <button type="button" id="mobTabImage" class="mob-tab active">
-      <span>📄 Tööleht</span>
+      <span>📄 Tööleht (Puuduta #nr)</span>
     </button>
     <button type="button" id="mobTabAnswers" class="mob-tab">
-      <span>✅ Vastused</span>
+      <span>📝 Kõik lahendused</span>
       <span id="mobAnswerCount" class="mob-badge">0</span>
     </button>
   </nav>
@@ -106,7 +105,7 @@
       <div id="launchpadView" class="launchpad-view">
         <div class="launchpad-container">
 
-          <!-- SAMM-SAMMULT API VÕTME JUHEND (Avaneb automaatselt, kui võti puudub) -->
+          <!-- SAMM-SAMMULT API VÕTME JUHEND -->
           <div id="onboardingCard" class="onboarding-card">
             <div class="onboarding-top">
               <div class="onboarding-title-group">
@@ -121,7 +120,7 @@
                 <span class="step-num">1</span>
                 <div class="step-text">
                   <strong>Ava Google AI Studio</strong>
-                  <p>Mine lehele <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" class="ext-link">aistudio.google.com/apikey &nearr;</a> ja logi sisse oma tavalise Google'i kontoga (pangakaarti pole vaja).</p>
+                  <p>Mine lehele <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" class="ext-link">aistudio.google.com/apikey &nearr;</a> ja logi sisse oma Google'i kontoga.</p>
                 </div>
               </div>
               <div class="step-item">
@@ -135,7 +134,7 @@
                 <span class="step-num">3</span>
                 <div class="step-text">
                   <strong>Kleebi võti siia alla</strong>
-                  <p>Võti salvestub turvaliselt ainult sinu seadmesse ja jääb meelde ka pärast lehe sulgemist.</p>
+                  <p>Võti salvestub turvaliselt sinu telefoni või arvutisse ja jääb automaatselt meelde.</p>
                 </div>
               </div>
             </div>
@@ -157,9 +156,9 @@
           <!-- PEAMINE ALLIKA VALIKU KAART -->
           <div class="launchpad-card">
             <div class="launchpad-header">
-              <span class="pill-tag">ULTRA HD TERAVUS • VAIKNE REŽIIM • SÄÄSTLIK</span>
-              <h2>Jäädvusta ja lahenda tööleht</h2>
-              <p>Vali endale sobiv viis testi või töölehe sissevõtmiseks. Kõik vastused kuvatakse otse küsimuste ja lünkade peal.</p>
+              <span class="pill-tag">LAHENDUSKÄIGUGA • VAIKNE • MOBIILISÕBRALIK</span>
+              <h2>Jäädvusta ja lahenda töövihik või test</h2>
+              <p>Näitab nii <strong>loomulikku lahenduskäiku</strong> (nagu õpilane kirjutaks vihikusse) kui ka lõppvastust.</p>
             </div>
 
             <div class="capture-grid">
@@ -173,12 +172,12 @@
                 </div>
                 <div class="card-body">
                   <h3>Tee kaameraga foto</h3>
-                  <p>Pildista paberist kontrolltööd või arvutiekraani otse telefoni kaameraga</p>
+                  <p>Pildista paberist töövihikut, kontrolltööd või arvutiekraani otse telefoni kaameraga</p>
                 </div>
                 <span class="card-action">Ava kaamera &rarr;</span>
               </button>
 
-              <!-- Meetod 2: Terve ekraani otsepilt (Arvutis esikohal!) -->
+              <!-- Meetod 2: Terve ekraani otsepilt -->
               <button type="button" id="startStreamBtn" class="capture-card primary-capture desktop-stream-card">
                 <div class="card-icon">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -218,8 +217,8 @@
                   </svg>
                 </div>
                 <div class="card-body">
-                  <h3>Vali pilt või lohista siia</h3>
-                  <p>Vali galeriist või arvutist <code>.png</code>, <code>.jpg</code> või <code>.webp</code> ekraanipilt</p>
+                  <h3>Vali pilt galeriist / failidest</h3>
+                  <p>Vali telefonist või arvutist olemasolev <code>.png</code>, <code>.jpg</code> või <code>.webp</code> foto</p>
                 </div>
               </button>
             </div>
@@ -267,7 +266,6 @@
               />
             </div>
 
-            <!-- Punane salvestusnupp -->
             <button
               type="button"
               id="delayedCaptureBtn"
@@ -283,7 +281,6 @@
 
             <div class="hud-divider"></div>
 
-            <!-- X Nupp (Lõpeta voog) -->
             <button
               type="button"
               id="stopStreamBtn"
@@ -300,51 +297,57 @@
         </div>
       </div>
 
-      <!-- VAADE 3: JÄÄDVUSTATUD EKRAANIPILT JA VASTUSTE ÜLEKATE -->
+      <!-- VAADE 3: JÄÄDVUSTATUD PILT + PUHTAD NUMBRIMÄRGISED + ALUMINE LAHENDUSKAART -->
       <div id="resultView" class="result-view hidden">
         <!-- Tööriistariba -->
         <div class="result-toolbar">
           <div class="toolbar-left">
             <button type="button" id="backToStreamBtn" class="btn-toolbar hidden">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                 <polygon points="23 7 16 12 23 17 23 7"/>
                 <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
               </svg>
               <span>Otsepilt</span>
             </button>
-            <button type="button" id="recaptureStreamBtn" class="btn-toolbar btn-accent hidden" title="Käivita taimer ja tee uus pilt aktiivsest ekraanivoost">
+            <button type="button" id="recaptureStreamBtn" class="btn-toolbar btn-accent hidden" title="Tee uus pilt aktiivsest ekraanivoost">
               <span class="mini-red-dot"></span>
-              <span>Uus pilt taimeriga</span>
+              <span>Uus pilt</span>
             </button>
             <button type="button" id="newCaptureBtn" class="btn-toolbar">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                 <path d="M3 3v5h5"/>
               </svg>
-              <span>Uus pilt</span>
+              <span>Uus foto</span>
             </button>
           </div>
 
           <div class="toolbar-right">
+            <!-- Vaheta: Väikesed numbrid (#1, #2) vs Täistekstiga märgised -->
+            <button
+              type="button"
+              id="togglePinModeBtn"
+              class="btn-toolbar"
+              title="Vaheta kompaktsete numbrite (#1, #2) ja täistekstiga märgiste vahel"
+            >
+              <span id="togglePinModeText">🏷️ Näita vastuseid pildil</span>
+            </button>
+
             <button
               type="button"
               id="toggleOverlaysBtn"
               class="btn-toolbar"
-              title="Klõpsa või hoia all, et peita vastuste märgised ja vaadata puhast pilti"
+              title="Klõpsa või hoia all, et peita kõik märgised"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              <span id="toggleOverlaysText">Peida märgised</span>
+              <span id="toggleOverlaysText">👁️ Peida märgised</span>
             </button>
 
-            <button type="button" id="retrySolveBtn" class="btn-toolbar" title="Lahenda see pilt uuesti valitud mudeliga">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button type="button" id="retrySolveBtn" class="btn-toolbar" title="Lahenda see pilt uuesti">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="23 4 23 10 17 10"/>
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
               </svg>
-              <span>Lahenda uuesti</span>
+              <span>Uuesti</span>
             </button>
           </div>
         </div>
@@ -353,30 +356,55 @@
         <div class="canvas-stage" id="canvasStage">
           <div id="imageAspectWrapper" class="image-aspect-wrapper">
             <img id="capturedImage" alt="Jäädvustatud tööleht" draggable="false" />
-            <div id="overlayLayer" class="overlay-layer"></div>
+            <div id="overlayLayer" class="overlay-layer compact-pins"></div>
 
             <!-- Skaneerimise animatsioon -->
             <div id="solvingScanner" class="solving-scanner hidden">
               <div class="scanner-beam"></div>
               <div class="scanner-status-pill">
                 <span class="spinner"></span>
-                <span id="scannerStatusMsg">📸 Lahendan töölehte...</span>
+                <span id="scannerStatusMsg">📸 Arvutan lahenduskäike ja vastuseid...</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- AKTIIVSE ÜLESANDE HÕLJUV ALUMINE KAART (Ideaalne mobiilis ja arvutis ükshaaval maha kirjutamiseks!) -->
+        <div id="activePinInspector" class="active-pin-inspector hidden">
+          <div class="inspector-top">
+            <div class="inspector-title">
+              <span id="inspIdBadge" class="answer-id-pill">#1</span>
+              <strong id="inspQuestionLabel">Ülesanne 1</strong>
+            </div>
+            <div class="inspector-nav">
+              <button type="button" id="inspPrevBtn" class="btn-nav-pin" title="Eelmine ülesanne">&larr; Eelmine</button>
+              <button type="button" id="inspNextBtn" class="btn-nav-pin" title="Järgmine ülesanne">Järgmine &rarr;</button>
+              <button type="button" id="inspCloseBtn" class="icon-btn" title="Sulge kiirvaade">&times;</button>
+            </div>
+          </div>
+          <div id="inspStepsRow" class="inspector-steps"></div>
+          <div class="inspector-answer-row">
+            <div class="inspector-final">
+              <span class="final-tag">Vastus:</span>
+              <span id="inspFinalAnswer" class="final-val"></span>
+            </div>
+            <button type="button" id="inspCopyBtn" class="copy-card-btn">
+              <span>Kopeeri</span>
+            </button>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- PAREM / ALUMINE KÜLGPANEEL: SÜNKROONITUD VASTUSED + JÄRELKÜSIMUS -->
-    <aside class="sidebar-panel" id="sidebarPanel" aria-label="Sünkroonitud vastused">
+    <!-- PAREM / ALUMINE KÜLGPANEEL: TÄIELIK LAHENDUSKÄIKUDE JA VASTUSTE NIMEKIRI -->
+    <aside class="sidebar-panel" id="sidebarPanel" aria-label="Lahenduskäigud ja vastused">
       <div class="sidebar-header">
         <div class="sidebar-title-row">
-          <h2>Vastused</h2>
+          <h2>Lahenduskäigud ja vastused</h2>
           <span id="answerCountBadge" class="count-badge">0</span>
         </div>
         <div class="sidebar-actions">
-          <button type="button" id="copyAllBtn" class="btn-xs" disabled title="Kopeeri kõik vastused lõikelauale">
+          <button type="button" id="copyAllBtn" class="btn-xs" disabled title="Kopeeri kõik lahendused lõikelauale">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -405,7 +433,7 @@
             </svg>
           </div>
           <p class="empty-title">Valmis lahendamiseks</p>
-          <p class="empty-desc">Tee pilt, jaga ekraani või vajuta <kbd>Ctrl+V</kbd>, et kuvada täpsed vastused siia ja otse töölehele.</p>
+          <p class="empty-desc">Tee pilt töövihikust või jaga ekraani — näed iga ülesande juures nii loomulikku lahenduskäiku kui ka lõppvastust.</p>
         </div>
       </div>
 
@@ -415,7 +443,7 @@
         <input
           type="text"
           id="followUpInput"
-          placeholder="Parandus (nt &quot;Tee #7 lühemaks&quot; või &quot;Kontrolli #10&quot;)..."
+          placeholder="Täpsustus (nt &quot;Lahenda ka ül 52 tabel&quot; või &quot;Pikem lahenduskäik&quot;)..."
           disabled
           autocomplete="off"
         />

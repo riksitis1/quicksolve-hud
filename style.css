@@ -3,7 +3,7 @@
   --bg-surface: #0d121b;
   --bg-elevated: #141b28;
   --bg-card: #192232;
-  --bg-glass: rgba(13, 18, 27, 0.88);
+  --bg-glass: rgba(13, 18, 27, 0.9);
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.17);
   --neon-green: #00ff88;
@@ -18,7 +18,7 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --topbar-height: 58px;
-  --sidebar-width: 380px;
+  --sidebar-width: 400px;
 }
 
 * {
@@ -65,22 +65,22 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px;
-  gap: 14px;
+  padding: 0 16px;
+  gap: 12px;
   z-index: 40;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .brand-logo {
   position: relative;
-  width: 35px;
-  height: 35px;
+  width: 34px;
+  height: 34px;
   border-radius: 9px;
   background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(56, 189, 248, 0.14));
   border: 1px solid rgba(0, 255, 136, 0.45);
@@ -88,7 +88,6 @@ html, body {
   align-items: center;
   justify-content: center;
   color: var(--neon-green);
-  box-shadow: 0 0 16px rgba(0, 255, 136, 0.14);
 }
 
 .logo-dot {
@@ -103,7 +102,7 @@ html, body {
 }
 
 .brand-text h1 {
-  font-size: 15.5px;
+  font-size: 15px;
   font-weight: 800;
   letter-spacing: -0.02em;
   display: flex;
@@ -131,14 +130,14 @@ html, body {
 .config-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   flex-wrap: nowrap;
 }
 
 .control-group {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
 }
 
 .input-with-icon {
@@ -169,7 +168,7 @@ html, body {
   color: var(--text-main);
   font-family: var(--font-mono);
   font-size: 12.5px;
-  width: 205px;
+  width: 195px;
   height: 34px;
   outline: none;
 }
@@ -196,7 +195,7 @@ html, body {
 
 .icon-btn:hover {
   color: var(--text-main);
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .btn-help {
@@ -214,12 +213,6 @@ html, body {
   gap: 5px;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.btn-help:hover {
-  background: rgba(56, 189, 248, 0.18);
-  border-color: rgba(56, 189, 248, 0.5);
 }
 
 #modelSelect {
@@ -230,16 +223,10 @@ html, body {
   border-radius: 8px;
   padding: 0 10px;
   font-family: var(--font-sans);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   outline: none;
-  transition: border-color 0.18s ease;
-}
-
-#modelSelect:focus,
-#modelSelect:hover {
-  border-color: var(--border-strong);
 }
 
 /* Olekumärgis */
@@ -248,7 +235,7 @@ html, body {
   align-items: center;
   gap: 7px;
   height: 34px;
-  padding: 0 12px;
+  padding: 0 11px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
@@ -309,13 +296,13 @@ html, body {
 }
 
 /* =========================================================
-   MOBIILNE VAATE VAHETAJA (TÖÖLEHT VS VASTUSED)
+   MOBIILNE VAATE VAHETAJA (TÖÖLEHT VS KÕIK LAHENDUSED)
    ========================================================= */
 .mobile-tab-switcher {
   display: none;
   background: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
-  padding: 6px 12px;
+  padding: 6px 10px;
   gap: 8px;
 }
 
@@ -327,7 +314,7 @@ html, body {
   background: var(--bg-elevated);
   color: var(--text-secondary);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -352,7 +339,7 @@ html, body {
 }
 
 /* =========================================================
-   PÕHITÖÖLAUD (JAOTATUD VAADE)
+   PÕHITÖÖLAUD
    ========================================================= */
 .workspace {
   display: grid;
@@ -369,7 +356,7 @@ html, body {
   height: 100%;
   width: 100%;
   background:
-    radial-gradient(circle at 50% 20%, rgba(0, 255, 136, 0.045), transparent 60%),
+    radial-gradient(circle at 50% 20%, rgba(0, 255, 136, 0.04), transparent 60%),
     linear-gradient(180deg, #090d14 0%, #06090e 100%);
   overflow: hidden;
 }
@@ -404,7 +391,7 @@ html, body {
 .launchpad-view {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 20px;
   overflow-y: auto;
@@ -419,12 +406,11 @@ html, body {
   margin: auto 0;
 }
 
-/* Samm-sammult API võtme juhendi kaart */
 .onboarding-card {
   background: linear-gradient(145deg, rgba(20, 29, 45, 0.96), rgba(13, 18, 28, 0.98));
   border: 1px solid rgba(56, 189, 248, 0.35);
   border-radius: 16px;
-  padding: 20px 22px;
+  padding: 18px 20px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
@@ -433,24 +419,24 @@ html, body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .onboarding-badge {
   display: inline-block;
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--accent-blue);
   background: rgba(56, 189, 248, 0.12);
   border: 1px solid rgba(56, 189, 248, 0.3);
   padding: 2px 8px;
   border-radius: 99px;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .onboarding-title-group h3 {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 800;
   color: #ffffff;
 }
@@ -458,45 +444,44 @@ html, body {
 .onboarding-steps {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
 
 .step-item {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-subtle);
   border-radius: 11px;
-  padding: 12px;
+  padding: 11px;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 9px;
 }
 
 .step-num {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: var(--neon-green);
   color: #04120b;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 800;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 1px;
 }
 
 .step-text strong {
   display: block;
-  font-size: 13px;
+  font-size: 12.5px;
   color: #ffffff;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 
 .step-text p {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--text-secondary);
   line-height: 1.4;
 }
@@ -508,69 +493,54 @@ html, body {
   border-bottom: 1px dashed rgba(0, 255, 136, 0.5);
 }
 
-.ext-link:hover {
-  border-bottom-style: solid;
-}
-
 .onboarding-input-row {
   display: flex;
-  gap: 10px;
+  gap: 9px;
 }
 
 #guideApiKeyInput {
   flex: 1;
-  height: 40px;
+  height: 38px;
   background: var(--bg-root);
   border: 1px solid var(--border-strong);
   border-radius: 9px;
-  padding: 0 13px;
+  padding: 0 12px;
   color: var(--text-main);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12.5px;
   outline: none;
 }
 
 #guideApiKeyInput:focus {
   border-color: var(--neon-green);
-  box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.18);
 }
 
 .btn-primary-neon {
-  height: 40px;
-  padding: 0 18px;
+  height: 38px;
+  padding: 0 16px;
   border-radius: 9px;
   background: var(--neon-green);
   border: none;
   color: #04120b;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
-  transition: filter 0.15s ease, transform 0.12s ease;
 }
 
-.btn-primary-neon:hover {
-  filter: brightness(1.08);
-}
-
-.btn-primary-neon:active {
-  transform: scale(0.98);
-}
-
-/* Peamine allika valiku kaart */
 .launchpad-card {
   width: 100%;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
-  padding: 26px;
+  padding: 24px;
   box-shadow: 0 22px 55px rgba(0, 0, 0, 0.45);
 }
 
 .launchpad-header {
   text-align: center;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .pill-tag {
@@ -579,7 +549,7 @@ html, body {
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: var(--neon-green);
   background: var(--neon-green-dim);
   border: 1px solid rgba(0, 255, 136, 0.3);
@@ -589,7 +559,7 @@ html, body {
 }
 
 .launchpad-header h2 {
-  font-size: 22px;
+  font-size: 21px;
   font-weight: 800;
   letter-spacing: -0.02em;
   margin-bottom: 5px;
@@ -605,30 +575,27 @@ html, body {
 .capture-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 13px;
+  gap: 12px;
 }
 
 .capture-card {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   border-radius: 14px;
-  padding: 16px 18px;
+  padding: 15px 16px;
   text-align: left;
   color: var(--text-main);
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 9px;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  gap: 8px;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
-.capture-card:hover,
-.capture-card:focus-visible {
+.capture-card:hover {
   transform: translateY(-2px);
   border-color: rgba(0, 255, 136, 0.5);
   background: var(--bg-card);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
-  outline: none;
 }
 
 .primary-capture {
@@ -636,25 +603,16 @@ html, body {
   border-color: rgba(0, 255, 136, 0.35);
 }
 
-/* Arvutis tõstame Ekraanijagamise esimeseks ja Kaamera teiseks */
 @media (min-width: 769px) {
-  .desktop-stream-card {
-    order: 1;
-  }
-  .mobile-first-card {
-    order: 2;
-  }
-  #pasteCardBtn {
-    order: 3;
-  }
-  #uploadBtn {
-    order: 4;
-  }
+  .desktop-stream-card { order: 1; }
+  .mobile-first-card { order: 2; }
+  #pasteCardBtn { order: 3; }
+  #uploadBtn { order: 4; }
 }
 
 .card-icon {
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   background: rgba(0, 255, 136, 0.12);
   color: var(--neon-green);
@@ -664,18 +622,15 @@ html, body {
 }
 
 .card-body h3 {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 700;
   margin-bottom: 3px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .card-body p {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-secondary);
-  line-height: 1.42;
+  line-height: 1.4;
 }
 
 .card-action {
@@ -696,7 +651,7 @@ kbd, code {
 }
 
 /* =========================================================
-   VAADE 2: EKRAANI OTSEVOOG JA HUD
+   VAADE 2: EKRAANI OTSEVOOG
    ========================================================= */
 .stream-view {
   flex: 1;
@@ -727,14 +682,13 @@ kbd, code {
   width: auto;
   height: auto;
   object-fit: contain;
-  border-radius: 10px;
 }
 
 .countdown-overlay {
   position: absolute;
   inset: 0;
   z-index: 30;
-  background: rgba(6, 9, 15, 0.8);
+  background: rgba(6, 9, 15, 0.82);
   backdrop-filter: blur(8px);
   display: flex;
   flex-direction: column;
@@ -744,49 +698,41 @@ kbd, code {
 }
 
 .countdown-ring {
-  width: 134px;
-  height: 134px;
+  width: 130px;
+  height: 130px;
   border-radius: 50%;
   border: 4px solid var(--neon-green);
   background: rgba(0, 255, 136, 0.1);
-  box-shadow: 0 0 45px rgba(0, 255, 136, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: countdownPulse 0.95s ease-in-out infinite;
 }
 
 #countdownNumber {
   font-family: var(--font-mono);
-  font-size: 62px;
+  font-size: 60px;
   font-weight: 800;
   color: var(--neon-green);
 }
 
 .countdown-prompt {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   color: #ffffff;
   text-align: center;
   padding: 0 16px;
 }
 
-@keyframes countdownPulse {
-  0% { transform: scale(0.96); }
-  50% { transform: scale(1.04); }
-  100% { transform: scale(0.96); }
-}
-
 .floating-hud {
   position: absolute;
-  bottom: 20px;
+  bottom: 18px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 25;
   display: flex;
   align-items: center;
-  gap: 13px;
-  padding: 9px 15px;
+  gap: 12px;
+  padding: 8px 14px;
   background: rgba(13, 18, 28, 0.92);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -802,7 +748,6 @@ kbd, code {
   font-size: 11px;
   font-weight: 700;
   color: var(--neon-green);
-  white-space: nowrap;
 }
 
 .live-dot {
@@ -811,20 +756,18 @@ kbd, code {
   border-radius: 50%;
   background: var(--neon-green);
   box-shadow: 0 0 10px var(--neon-green);
-  animation: pulseDot 1s infinite alternate;
 }
 
 .hud-divider {
   width: 1px;
-  height: 24px;
+  height: 22px;
   background: var(--border-subtle);
 }
 
 .hud-cooldown-group {
   display: flex;
   align-items: center;
-  gap: 7px;
-  white-space: nowrap;
+  gap: 6px;
 }
 
 .hud-cooldown-group label {
@@ -834,45 +777,35 @@ kbd, code {
 }
 
 #cooldownInput {
-  width: 52px;
-  height: 32px;
+  width: 48px;
+  height: 30px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-strong);
-  border-radius: 8px;
+  border-radius: 7px;
   color: var(--text-main);
   font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 700;
   text-align: center;
-  outline: none;
 }
 
 .hud-capture-btn {
   display: flex;
   align-items: center;
-  gap: 9px;
-  background: rgba(255, 59, 92, 0.18);
+  gap: 8px;
+  background: rgba(255, 59, 92, 0.2);
   border: 1px solid rgba(255, 59, 92, 0.55);
   color: #ffffff;
-  padding: 6px 15px 6px 8px;
+  padding: 5px 14px 5px 7px;
   border-radius: 999px;
   cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
-  white-space: nowrap;
-  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
-}
-
-.hud-capture-btn:hover {
-  background: rgba(255, 59, 92, 0.3);
-  box-shadow: 0 0 20px rgba(255, 59, 92, 0.4);
-  transform: scale(1.02);
 }
 
 .red-circle-outer {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   border: 2px solid #ffffff;
   display: flex;
@@ -881,16 +814,15 @@ kbd, code {
 }
 
 .red-circle-inner {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--accent-red);
-  box-shadow: 0 0 10px var(--accent-red);
 }
 
 .hud-close-btn {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid var(--border-subtle);
@@ -899,17 +831,10 @@ kbd, code {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.hud-close-btn:hover {
-  background: rgba(255, 59, 92, 0.22);
-  color: #ffffff;
 }
 
 /* =========================================================
-   VAADE 3: TULEMUSTE VAADE JA MÄRGISED PILDIL
+   VAADE 3: TULEMUSTE VAADE, KOMPAKTSED #NR MÄRGISED JA KIIRVAADE
    ========================================================= */
 .result-view {
   flex: 1;
@@ -917,78 +842,72 @@ kbd, code {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 .result-toolbar {
-  min-height: 46px;
-  padding: 6px 14px;
-  background: rgba(13, 18, 27, 0.85);
+  padding: 7px 12px;
+  background: rgba(13, 18, 27, 0.92);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   flex-shrink: 0;
+  z-index: 25;
 }
 
 .toolbar-left,
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .btn-toolbar {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 11px;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
   border-radius: 7px;
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   color: var(--text-main);
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.btn-toolbar:hover {
-  background: var(--bg-card);
-  border-color: var(--border-strong);
 }
 
 .btn-toolbar.active-toggle {
-  background: rgba(0, 255, 136, 0.14);
+  background: rgba(0, 255, 136, 0.16);
   border-color: var(--neon-green);
   color: var(--neon-green);
 }
 
 .btn-accent {
-  background: rgba(255, 59, 92, 0.15);
+  background: rgba(255, 59, 92, 0.16);
   border-color: rgba(255, 59, 92, 0.45);
 }
 
 .mini-red-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--accent-red);
-  box-shadow: 0 0 6px var(--accent-red);
 }
 
 .canvas-stage {
   flex: 1;
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 14px;
+  padding: 12px;
   overflow: auto;
 }
 
@@ -996,18 +915,18 @@ kbd, code {
   position: relative;
   display: inline-block;
   max-width: 100%;
-  max-height: 100%;
   line-height: 0;
   border-radius: 10px;
-  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   user-select: none;
+  margin: auto;
 }
 
 #capturedImage {
   display: block;
   max-width: 100%;
-  max-height: calc(100vh - var(--topbar-height) - 80px);
+  max-height: calc(100vh - var(--topbar-height) - 185px);
   width: auto;
   height: auto;
   border-radius: 9px;
@@ -1025,73 +944,73 @@ kbd, code {
   pointer-events: none !important;
 }
 
-/* 2D Vastuse Raam ja Märgis */
+/* 2D Vastuse Raam pildil */
 .spatial-box {
   position: absolute;
-  border: 2px solid var(--neon-green);
-  background: rgba(0, 255, 136, 0.1);
+  border: 1.8px solid rgba(0, 255, 136, 0.85);
+  background: rgba(0, 255, 136, 0.08);
   border-radius: 4px;
-  box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
   pointer-events: auto;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.14s ease, border-color 0.14s ease;
   z-index: 10;
 }
 
 .spatial-box:hover,
 .spatial-box.is-highlighted {
-  z-index: 45;
+  z-index: 48;
   background: rgba(0, 255, 136, 0.24);
   border-color: #ffffff;
-  box-shadow: 0 0 0 2px var(--neon-green), 0 0 22px var(--neon-green);
-  animation: boxPulse 0.9s ease-in-out infinite alternate;
-}
-
-@keyframes boxPulse {
-  from { box-shadow: 0 0 0 2px var(--neon-green), 0 0 12px var(--neon-green); }
-  to { box-shadow: 0 0 0 3px #ffffff, 0 0 26px var(--neon-green); }
+  box-shadow: 0 0 0 2px var(--neon-green), 0 0 20px var(--neon-green);
 }
 
 .spatial-pill {
   position: absolute;
-  top: 50%;
-  left: 2px;
-  transform: translateY(-50%);
+  top: -10px;
+  left: -6px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  max-width: 210px;
-  padding: 2px 7px;
-  border-radius: 5px;
-  background: rgba(6, 10, 16, 0.94);
+  gap: 4px;
+  max-width: 220px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: #050911;
   border: 1.5px solid var(--neon-green);
   color: #ffffff;
   font-family: var(--font-sans);
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.85);
   pointer-events: auto;
-  transition: max-width 0.18s ease, background 0.15s ease;
 }
 
 .spatial-box.pill-right .spatial-pill {
   left: auto;
-  right: 2px;
+  right: -6px;
 }
 
 .spatial-pill-id {
   font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 800;
-  color: #04120b;
-  background: var(--neon-green);
-  padding: 0 5px;
-  border-radius: 3px;
+  color: var(--neon-green);
   flex-shrink: 0;
+}
+
+.spatial-box.is-highlighted .spatial-pill {
+  background: var(--neon-green);
+  color: #04120b;
+  border-color: #ffffff;
+  transform: scale(1.08);
+  z-index: 55;
+}
+
+.spatial-box.is-highlighted .spatial-pill-id {
+  color: #04120b;
 }
 
 .spatial-pill-text {
@@ -1099,15 +1018,125 @@ kbd, code {
   text-overflow: ellipsis;
 }
 
-.spatial-box:hover .spatial-pill,
-.spatial-box.is-highlighted .spatial-pill,
-.spatial-box.is-expanded .spatial-pill {
-  max-width: 380px;
-  white-space: normal;
+/* KOMPAKTNE REŽIIM (Vaikimisi sees!): Näitab pildil ainult väikest #1, #2, #3 märki,
+   et 30+ vastusega töövihiku leht oleks 100% puhas ja loetav! */
+.overlay-layer.compact-pins .spatial-pill-text {
+  display: none;
+}
+
+.overlay-layer.compact-pins .spatial-pill {
+  padding: 1px 5px;
+  min-width: 22px;
+  justify-content: center;
+}
+
+/* Kui kasutaja hoiab hiirt peal või valib täisvaate, näita teksti */
+.overlay-layer:not(.compact-pins) .spatial-pill-id {
+  background: var(--neon-green);
+  color: #04120b;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+
+/* AKTIIVSE ÜLESANDE ALUMINE KIIRVAATE KAART (#activePinInspector) */
+.active-pin-inspector {
+  background: rgba(13, 19, 30, 0.97);
+  border-top: 2px solid var(--neon-green);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.6);
+  z-index: 35;
+}
+
+.inspector-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inspector-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.inspector-title strong {
+  font-size: 13px;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inspector-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.btn-nav-pin {
+  height: 27px;
+  padding: 0 9px;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-nav-pin:hover {
+  border-color: var(--neon-green);
+  color: var(--neon-green);
+}
+
+.inspector-steps {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: #bae6fd;
+  background: rgba(56, 189, 248, 0.09);
+  border-left: 3px solid var(--accent-blue);
+  padding: 6px 10px;
+  border-radius: 6px;
+  line-height: 1.4;
   word-break: break-word;
-  background: #04070d;
-  border-color: #ffffff;
-  z-index: 50;
+}
+
+.inspector-answer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.inspector-final {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+}
+
+.final-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--neon-green);
+  flex-shrink: 0;
+}
+
+.final-val {
+  font-size: 15px;
+  font-weight: 800;
+  color: #ffffff;
+  word-break: break-word;
 }
 
 /* Skaneerimise efekt */
@@ -1143,14 +1172,13 @@ kbd, code {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 18px;
+  padding: 10px 16px;
   border-radius: 999px;
   background: rgba(10, 14, 22, 0.94);
   border: 1px solid rgba(0, 255, 136, 0.45);
   color: #ffffff;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
 }
 
 .spinner {
@@ -1167,7 +1195,7 @@ kbd, code {
 }
 
 /* =========================================================
-   PAREM KÜLGPANEEL: VASTUSTE KAARDID JA PARANDUSRIBA
+   PAREM KÜLGPANEEL: LAHENDUSKÄIGUD JA VASTUSED
    ========================================================= */
 .sidebar-panel {
   background: var(--bg-surface);
@@ -1224,13 +1252,6 @@ kbd, code {
   font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-}
-
-.btn-xs:hover:not(:disabled) {
-  color: var(--text-main);
-  border-color: var(--border-strong);
-  background: var(--bg-card);
 }
 
 .btn-xs:disabled {
@@ -1249,7 +1270,7 @@ kbd, code {
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .error-content strong {
@@ -1264,7 +1285,7 @@ kbd, code {
   padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 10px;
 }
 
 .empty-answers {
@@ -1275,8 +1296,8 @@ kbd, code {
 }
 
 .empty-icon {
-  width: 52px;
-  height: 52px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-subtle);
@@ -1294,7 +1315,7 @@ kbd, code {
 }
 
 .empty-desc {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
@@ -1304,14 +1325,14 @@ kbd, code {
   border-radius: 11px;
   padding: 11px 13px;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .answer-card:hover,
 .answer-card.is-highlighted {
   border-color: var(--neon-green);
   background: var(--bg-card);
-  box-shadow: 0 6px 18px rgba(0, 255, 136, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 255, 136, 0.12);
 }
 
 .answer-card-top {
@@ -1342,7 +1363,7 @@ kbd, code {
 
 .answer-label {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -1362,13 +1383,6 @@ kbd, code {
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
-  transition: all 0.15s ease;
-}
-
-.copy-card-btn:hover {
-  background: rgba(0, 255, 136, 0.15);
-  border-color: rgba(0, 255, 136, 0.45);
-  color: var(--neon-green);
 }
 
 .copy-card-btn.copied {
@@ -1377,13 +1391,46 @@ kbd, code {
   border-color: var(--neon-green);
 }
 
-.answer-value {
-  font-size: 15px;
+/* Lahenduskäigu blokk kaardil */
+.card-steps-box {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #bae6fd;
+  background: rgba(56, 189, 248, 0.08);
+  border-left: 2.5px solid var(--accent-blue);
+  padding: 5px 9px;
+  border-radius: 5px;
+  margin-bottom: 6px;
+  line-height: 1.4;
+  word-break: break-word;
+  user-select: text;
+}
+
+.card-steps-label {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 10px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-blue);
+  margin-bottom: 2px;
+}
+
+.answer-value {
+  font-size: 14.5px;
+  font-weight: 800;
   color: #ffffff;
   line-height: 1.38;
   word-break: break-word;
   user-select: text;
+}
+
+.answer-value-prefix {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--neon-green);
+  margin-right: 4px;
 }
 
 .followup-bar {
@@ -1407,7 +1454,6 @@ kbd, code {
   font-family: var(--font-sans);
   font-size: 12.5px;
   outline: none;
-  transition: border-color 0.15s ease;
 }
 
 #followUpInput:focus {
@@ -1416,7 +1462,6 @@ kbd, code {
 
 #followUpInput:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .btn-followup {
@@ -1433,12 +1478,10 @@ kbd, code {
   align-items: center;
   gap: 5px;
   cursor: pointer;
-  flex-shrink: 0;
 }
 
 .btn-followup:disabled {
   opacity: 0.4;
-  cursor: not-allowed;
 }
 
 .btn-secondary {
@@ -1452,18 +1495,21 @@ kbd, code {
 }
 
 /* =========================================================
-   MOBIILI- JA TAHVLISÕBRALIK VAADE (< 900px)
+   MOBIILISÕBRALIK VAADE (< 900px) — MITTE MIDAGI EI LÕIGATA ÄRA!
    ========================================================= */
 @media (max-width: 900px) {
   html, body {
-    overflow: auto;
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .top-bar {
     height: auto;
-    padding: 10px 12px;
+    padding: 8px 10px;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
   }
 
   .brand-text .subtitle {
@@ -1473,12 +1519,11 @@ kbd, code {
   .config-controls {
     width: 100%;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
   }
 
   .api-key-group {
-    flex: 1;
-    min-width: 200px;
+    flex: 1 1 100%;
   }
 
   .input-with-icon {
@@ -1491,7 +1536,6 @@ kbd, code {
 
   .model-group {
     flex: 1;
-    min-width: 160px;
   }
 
   #modelSelect {
@@ -1511,7 +1555,6 @@ kbd, code {
     grid-template-columns: 1fr;
   }
 
-  /* Mobiilis on Kaamera esikohal, Ekraanijagamine peidetud kui telefon seda ei toeta */
   .mobile-first-card {
     background: linear-gradient(145deg, rgba(0, 255, 136, 0.14), rgba(20, 27, 40, 0.96));
     border-color: rgba(0, 255, 136, 0.45);
@@ -1521,48 +1564,69 @@ kbd, code {
     display: flex;
     position: sticky;
     top: 0;
-    z-index: 38;
+    z-index: 42;
   }
 
   .workspace {
     display: flex;
     flex-direction: column;
     height: auto;
-    min-height: calc(100vh - 110px);
+    overflow: visible;
   }
 
   .stage-panel {
-    min-height: 62vh;
+    height: auto;
+    overflow: visible;
   }
 
-  .sidebar-panel {
-    border-left: none;
-    border-top: 1px solid var(--border-subtle);
-    min-height: 45vh;
+  .result-view {
+    height: auto;
+    overflow: visible;
   }
 
-  /* Kui mobiilis on valitud ainult üks vahekaart tulemuste vaates */
-  .workspace.mob-mode-image .sidebar-panel {
-    display: none;
-  }
-
-  .workspace.mob-mode-answers .stage-panel {
-    display: none;
+  .canvas-stage {
+    padding: 8px;
+    overflow: visible;
   }
 
   #capturedImage {
     max-height: none;
     width: 100%;
+    height: auto;
   }
 
-  .floating-hud {
-    width: calc(100% - 24px);
-    justify-content: space-between;
-    padding: 8px 12px;
-    gap: 8px;
+  /* Alumine valitud ülesande kiirvaade püsib mobiilis ekraani allservas */
+  .active-pin-inspector {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 14px 14px 0 0;
+    padding: 12px 14px;
   }
 
-  .hud-stream-indicator span:last-child {
+  .sidebar-panel {
+    border-left: none;
+    border-top: 1px solid var(--border-subtle);
+    height: auto;
+    overflow: visible;
+  }
+
+  .answers-list {
+    overflow: visible;
+  }
+
+  .followup-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 38;
+  }
+
+  .workspace.mob-mode-image .sidebar-panel {
+    display: none;
+  }
+
+  .workspace.mob-mode-answers .stage-panel {
     display: none;
   }
 }
