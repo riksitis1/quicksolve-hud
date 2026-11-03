@@ -20,13 +20,14 @@
     GUIDE_DISMISSED: 'quicksolve_guide_dismissed',
   };
 
-  const DEFAULT_MODEL = 'gemini-2.5-flash';
+  const DEFAULT_MODEL = 'gemini-3.8-flash';
   const MODEL_ALIASES = {
-    'gemini-3.8-flash': 'gemini-2.5-flash',
-    'gemini-3.5-flash-lite': 'gemini-2.5-flash-lite',
-    'gemini-4-argon': 'gemini-2.5-pro',
+    'gemini-2.5-flash': 'gemini-3.8-flash',
+    'gemini-2.5-flash-lite': 'gemini-3.5-flash-lite',
+    'gemini-2.5-pro': 'gemini-4-argon',
+    'gemini-2.0-flash': 'gemini-3.8-flash',
   };
-  const FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
+  const FALLBACK_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-4-argon'];
 
   const MAX_IMAGE_EDGE = 2400;
   const JPEG_QUALITY = 0.92;
@@ -846,6 +847,7 @@ STRICT RULES:
       ],
       generationConfig: {
         temperature: 0.1,
+        maxOutputTokens: 8192,
         responseMimeType: 'application/json',
         responseSchema: RESPONSE_SCHEMA,
       },
@@ -931,7 +933,18 @@ STRICT RULES:
     try {
       parsed = JSON.parse(cleaned);
     } catch {
-      throw new Error('Mudeli JSON vastuse lugemine ebaõnnestus.');
+      // Kui väga mahuka töövihiku lehe puhul jäi JSON massiivi lõpp poolikuks, taastame kõik terved objektid
+      const lastBrace = cleaned.lastIndexOf('}');
+      if (lastBrace !== -1) {
+        const repaired = `${cleaned.slice(0, lastBrace + 1)}]`;
+        try {
+          parsed = JSON.parse(repaired);
+        } catch {
+          throw new Error('Mudeli JSON vastuse lugemine ebaõnnestus.');
+        }
+      } else {
+        throw new Error('Mudeli JSON vastuse lugemine ebaõnnestus.');
+      }
     }
 
     if (!Array.isArray(parsed)) {
