@@ -345,6 +345,7 @@ html, body {
   display: grid;
   grid-template-columns: 1fr var(--sidebar-width);
   height: calc(100vh - var(--topbar-height));
+  height: calc(100dvh - var(--topbar-height));
   width: 100%;
   overflow: hidden;
 }
@@ -1672,5 +1673,14 @@ kbd, code {
 
   .workspace.mob-mode-answers .stage-panel {
     display: none;
+  }
+}
+
+/* Austa kasutaja soovi vähendada liikumist (ligipääsetavus + akusääst telefonis) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

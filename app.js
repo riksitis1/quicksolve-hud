@@ -28,8 +28,11 @@
   };
   const FALLBACK_MODELS = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-4-argon'];
 
-  const MAX_IMAGE_EDGE = 2400;
-  const JPEG_QUALITY = 0.92;
+  const MAX_IMAGE_EDGE = 2000;
+  const JPEG_QUALITY = 0.9;
+  const REQUEST_TIMEOUT_MS = 90000;
+  const MAX_CACHE_ENTRIES = 20;
+  const RETRYABLE_STATUSES = [404, 408, 429, 500, 502, 503, 504];
   const DEFAULT_TITLE = 'QuickSolve HUD — Nutikas töölehtede lahendaja';
 
   const SYSTEM_INSTRUCTION = `You are an elite, fast, undetectable school worksheet and workbook solver. Analyze the image with extreme visual precision, locate every unanswered question, empty table cell/rectangle after an "=" sign, fill-in-the-blank line, matching box, or multiple-choice question, and return the exact location guide, natural student solution steps, and final answer mapped to 2D coordinates.
@@ -177,7 +180,9 @@ STRICT RULES:
   let overlaysHidden = false;
   let holdHideTimer = null;
   let isHoldingHide = false;
+  let suppressNextToggleClick = false;
   let activeAbortController = null;
+  let solveRequestId = 0;
 
   const responseCache = new Map();
 
@@ -739,35 +744,88 @@ STRICT RULES:
   // 9. GEMINI REST API PÄRING
   // =========================================================================
   async function callGeminiModel(model, apiKey, payload, signal) {
+    // API võti saadetakse päises (mitte URL-is), et see ei satuks brauseri ajalukku ega logidesse
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       model
-    )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    )}:generateContent`;
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-      signal,
-    });
+    // Ükski päring ei jää lõputult "rippuma" — 90 sekundi järel katkestame
+    const timeoutController = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      timeoutController.abort();
+    }, REQUEST_TIMEOUT_MS);
+    const forwardAbort = () => timeoutController.abort();
+    signal.addEventListener('abort', forwardAbort);
 
-    if (!response.ok) {
-      let errDetail = `HTTP ${response.status}`;
-      try {
-        const errJson = await response.json();
-        if (errJson && errJson.error && errJson.error.message) {
-          errDetail = errJson.error.message;
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
+        body: JSON.stringify(payload),
+        signal: timeoutController.signal,
+      });
+
+      if (!response.ok) {
+        let errDetail = `HTTP ${response.status}`;
+        try {
+          const errJson = await response.json();
+          if (errJson && errJson.error && errJson.error.message) {
+            errDetail = errJson.error.message;
+          }
+        } catch {
+          // Ignoreeri
         }
-      } catch {
-        // Ignoreeri
+        const error = new Error(errDetail);
+        error.status = response.status;
+        throw error;
       }
-      const error = new Error(errDetail);
-      error.status = response.status;
-      throw error;
-    }
 
-    return response.json();
+      return await response.json();
+    } catch (err) {
+      if (timedOut) {
+        const timeoutError = new Error('Päring võttis liiga kaua aega.');
+        timeoutError.status = 408;
+        throw timeoutError;
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+      signal.removeEventListener('abort', forwardAbort);
+    }
+  }
+
+  /** Muudab tehnilised API vead arusaadavaks eestikeelseks selgituseks */
+  function friendlyErrorMessage(err) {
+    const status = err && err.status;
+    const raw = String((err && err.message) || '');
+
+    if (!navigator.onLine || (err instanceof TypeError && /fetch|network/i.test(raw))) {
+      return 'Internetiühendus puudub või see on blokeeritud. Kontrolli ühendust ja proovi uuesti.';
+    }
+    if (/API key not valid|API_KEY_INVALID|API key expired/i.test(raw) || status === 401) {
+      return 'API võti ei kehti. Ava "? API juhend" ja kopeeri uus võti Google AI Studiost.';
+    }
+    if (status === 403) {
+      return 'Sellel API võtmel puudub luba. Loo uus võti aadressil aistudio.google.com/apikey.';
+    }
+    if (status === 429) {
+      return 'Tasuta päringute limiit sai hetkeks täis. Oota ~1 minut ja vajuta "Uuesti".';
+    }
+    if (status === 408) {
+      return 'Päring aegus. Proovi uuesti või tee pilt lähemalt ja selgemalt.';
+    }
+    if (status === 413) {
+      return 'Pilt on liiga suur. Tee uus foto lähemalt või vähema taustaga.';
+    }
+    if (status && status >= 500) {
+      return 'Google serverid on hetkel ülekoormatud. Proovi mõne sekundi pärast uuesti.';
+    }
+    return raw || 'Ühendus Gemini API-ga ebaõnnestus. Kontrolli oma API võtit.';
   }
 
   async function solveWithGemini(followUpInstruction = '', bypassCache = false) {
@@ -799,6 +857,7 @@ STRICT RULES:
     }
     activeAbortController = new AbortController();
 
+    const requestId = ++solveRequestId;
     isSolving = true;
     hideError();
     document.title = '📸 Solving...';
@@ -865,6 +924,10 @@ STRICT RULES:
 
           currentAnswers = parsedItems;
           responseCache.set(cacheKey, parsedItems);
+          // Hoia vahemälu väike, et pikalt kasutades mälu ei täituks
+          if (responseCache.size > MAX_CACHE_ENTRIES) {
+            responseCache.delete(responseCache.keys().next().value);
+          }
           renderSpatialOverlaysAndCards(parsedItems);
 
           document.title = `✅ Ready! (${parsedItems.length} Answers)`;
@@ -874,7 +937,9 @@ STRICT RULES:
         } catch (err) {
           if (err && err.name === 'AbortError') throw err;
           lastError = err;
-          if (err && (String(err.message).includes('API_KEY') || err.status === 403)) {
+          // Proovi varumudelit ainult siis, kui probleem on mudelis/serveris — mitte vigase võtme puhul
+          const isRetryable = !err.status || RETRYABLE_STATUSES.includes(err.status);
+          if (!isRetryable || err instanceof TypeError) {
             break;
           }
         }
@@ -887,16 +952,16 @@ STRICT RULES:
       if (err && err.name === 'AbortError') return;
       document.title = '⚠️ Viga lahendamisel';
       setStatus('error', 'Viga');
-      showError(
-        'Viga töölehe lahendamisel',
-        err.message || 'Ühendus Gemini API-ga ebaõnnestus. Kontrolli oma API võtit.'
-      );
+      showError('Viga töölehe lahendamisel', friendlyErrorMessage(err));
     } finally {
-      isSolving = false;
-      solvingScanner.classList.add('hidden');
-      const hasImage = Boolean(currentBase64Jpeg);
-      followUpInput.disabled = !hasImage;
-      followUpSubmitBtn.disabled = !hasImage;
+      // Kui vahepeal algas uus päring, ära sega selle olekut
+      if (requestId === solveRequestId) {
+        isSolving = false;
+        solvingScanner.classList.add('hidden');
+        const hasImage = Boolean(currentBase64Jpeg);
+        followUpInput.disabled = !hasImage;
+        followUpSubmitBtn.disabled = !hasImage;
+      }
     }
   }
 
@@ -1247,6 +1312,11 @@ STRICT RULES:
       if (isHoldingHide) {
         setOverlaysHiddenState(false);
         isHoldingHide = false;
+        // Hoidmise lõpus tekkiv "click" ei tohi märgiseid uuesti peita
+        suppressNextToggleClick = true;
+        setTimeout(() => {
+          suppressNextToggleClick = false;
+        }, 400);
       }
     };
 
@@ -1255,8 +1325,21 @@ STRICT RULES:
     toggleOverlaysBtn.addEventListener('pointercancel', releaseHold);
 
     toggleOverlaysBtn.addEventListener('click', () => {
-      if (!isHoldingHide) {
-        setOverlaysHiddenState(!overlaysHidden);
+      if (suppressNextToggleClick) return;
+      setOverlaysHiddenState(!overlaysHidden);
+    });
+
+    // Klaviatuuri otseteed arvutis: ← → vahetavad ülesannet, Esc sulgeb kiirvaate
+    window.addEventListener('keydown', (e) => {
+      if (resultView.classList.contains('hidden')) return;
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'ArrowRight') {
+        selectActivePinByIndex(selectedPinIndex + 1, true);
+      } else if (e.key === 'ArrowLeft') {
+        selectActivePinByIndex(selectedPinIndex - 1, true);
+      } else if (e.key === 'Escape') {
+        activePinInspector.classList.add('hidden');
       }
     });
 

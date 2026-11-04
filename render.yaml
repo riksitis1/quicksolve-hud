@@ -9,4 +9,12 @@ services:
       - path: /*
         name: Cache-Control
         value: no-cache
-
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(self), display-capture=(self), microphone=()
